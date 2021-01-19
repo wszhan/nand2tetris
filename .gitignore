@@ -1,0 +1,8 @@
+/demo
+
+*.zip
+*.tst
+*.cmp
+*.*~
+*.swp
+*.out
