@@ -1,0 +1,94 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/02/ALU.hdl
+
+/**
+ * The ALU (Arithmetic Logic Unit).
+ * Computes one of the following functions:
+ * x+y, x-y, y-x, 0, 1, -1, x, y, -x, -y, !x, !y,
+ * x+1, y+1, x-1, y-1, x&y, x|y on two 16-bit inputs, 
+ * according to 6 input bits denoted zx,nx,zy,ny,f,no.
+ * In addition, the ALU computes two 1-bit outputs:
+ * if the ALU output == 0, zr is set to 1; otherwise zr is set to 0;
+ * if the ALU output < 0, ng is set to 1; otherwise ng is set to 0.
+ */
+
+// Implementation: the ALU logic manipulates the x and y inputs
+// and operates on the resulting values, as follows:
+// if (zx == 1) set x = 0        // 16-bit constant
+// if (nx == 1) set x = !x       // bitwise not
+// if (zy == 1) set y = 0        // 16-bit constant
+// if (ny == 1) set y = !y       // bitwise not
+// if (f == 1)  set out = x + y  // integer 2's complement addition
+// if (f == 0)  set out = x & y  // bitwise and
+// if (no == 1) set out = !out   // bitwise not
+// if (out == 0) set zr = 1
+// if (out < 0) set ng = 1
+
+CHIP ALU {
+    IN  
+        x[16], y[16],  // 16-bit inputs        
+        zx, // zero the x input?
+        nx, // negate the x input?
+        zy, // zero the y input?
+        ny, // negate the y input?
+        f,  // compute out = x + y (if 1) or x & y (if 0)
+        no; // negate the out output?
+
+    OUT 
+        out[16], // 16-bit output
+        zr, // 1 if (out == 0), 0 otherwise
+        ng; // 1 if (out < 0),  0 otherwise
+
+    PARTS:
+   // Put you code here:
+
+   /* zero out and negate x? */
+   /*
+   Takeaway:
+   There is no conditional in Hack HDL, therefore if two outputs are selected 
+   according to a signal, both outputs must be evaluated and later decided.
+   */
+   Mux16(a=x, b[0..15]=false, sel=zx, out=zX);
+   Not16(in=zX, out=notZX);
+   Mux16(a=zX, b=notZX, sel=nx, out=ngX);
+
+   /* zero out and negate y? */
+   Mux16(a=y, b[0..15]=false, sel=zy, out=zY);
+   Not16(in=zY, out=notZY);
+   Mux16(a=zY, b=notZY, sel=ny, out=ngY);
+
+   /* f: which function to use? */
+   And16(a=ngX, b=ngY, out=andXY);
+   Add16(a=ngX, b=ngY, out=addXY);
+   Mux16(a=andXY, b=addXY, sel=f, out=fOutput);
+
+   /* negate output */
+   /*
+   Takeaway:
+   Sub-busing from input is not allowed here. But we can sub-bus ouptut to an internal pin.
+   */
+   Not16(in=fOutput, out=ngOutput);
+   Mux16(a=fOutput, b=ngOutput, sel=no, out=output, out[0..7]=output0to7, out[8..15]=output8to15);
+
+   /* Could the output be 0? */
+   Or8Way(in=output0to7, out=nz0to7);
+   Or8Way(in=output8to15, out=nz8to15);
+   Or(a=nz0to7, b=nz8to15, out=nonZeroOutput);
+   Not(in=nonZeroOutput, out=zr);
+
+   /* Negative output? */
+   /*
+   Takeaway:
+   Part of the output pin can be discarded if not useful.
+   Select only those that matters.
+   */
+   And16(a=output, b[0..15]=true, out[15]=ng, out[0..14]=discard);
+
+   /* final output */
+   /*
+   Mask.
+   */
+   Or16(a=output, b[0..15]=false, out=out);
+}
