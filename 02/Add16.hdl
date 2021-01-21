@@ -13,22 +13,220 @@ CHIP Add16 {
     OUT out[16];
 
     PARTS:
-   // Put you code here:
-   // No carry on the first bit 
-   HalfAdder(a=a[0], b=b[0], carry=c0, sum=out[0]);
-   FullAdder(a=a[1], b=b[1], c=c0, carry=c1, sum=out[1]);
-   FullAdder(a=a[2], b=b[2], c=c1, carry=c2, sum=out[2]);
-   FullAdder(a=a[3], b=b[3], c=c2, carry=c3, sum=out[3]);
-   FullAdder(a=a[4], b=b[4], c=c3, carry=c4, sum=out[4]);
-   FullAdder(a=a[5], b=b[5], c=c4, carry=c5, sum=out[5]);
-   FullAdder(a=a[6], b=b[6], c=c5, carry=c6, sum=out[6]);
-   FullAdder(a=a[7], b=b[7], c=c6, carry=c7, sum=out[7]);
-   FullAdder(a=a[8], b=b[8], c=c7, carry=c8, sum=out[8]);
-   FullAdder(a=a[9], b=b[9], c=c8, carry=c9, sum=out[9]);
-   FullAdder(a=a[10], b=b[10], c=c9, carry=c10, sum=out[10]);
-   FullAdder(a=a[11], b=b[11], c=c10, carry=c11, sum=out[11]);
-   FullAdder(a=a[12], b=b[12], c=c11, carry=c12, sum=out[12]);
-   FullAdder(a=a[13], b=b[13], c=c12, carry=c13, sum=out[13]);
-   FullAdder(a=a[14], b=b[14], c=c13, carry=c14, sum=out[14]);
-   FullAdder(a=a[15], b=b[15], c=c14, carry=false, sum=out[15]);
+    // Put you code here:
+    /*
+    Ripple carry adder
+    */
+    /*
+    HalfAdder(a=a[0], b=b[0], carry=c0, sum=out[0]);
+    FullAdder(a=a[1], b=b[1], c=c0, carry=c1, sum=out[1]);
+    FullAdder(a=a[2], b=b[2], c=c1, carry=c2, sum=out[2]);
+    FullAdder(a=a[3], b=b[3], c=c2, carry=c3, sum=out[3]);
+    FullAdder(a=a[4], b=b[4], c=c3, carry=c4, sum=out[4]);
+    FullAdder(a=a[5], b=b[5], c=c4, carry=c5, sum=out[5]);
+    FullAdder(a=a[6], b=b[6], c=c5, carry=c6, sum=out[6]);
+    FullAdder(a=a[7], b=b[7], c=c6, carry=c7, sum=out[7]);
+    FullAdder(a=a[8], b=b[8], c=c7, carry=c8, sum=out[8]);
+    FullAdder(a=a[9], b=b[9], c=c8, carry=c9, sum=out[9]);
+    FullAdder(a=a[10], b=b[10], c=c9, carry=c10, sum=out[10]);
+    FullAdder(a=a[11], b=b[11], c=c10, carry=c11, sum=out[11]);
+    FullAdder(a=a[12], b=b[12], c=c11, carry=c12, sum=out[12]);
+    FullAdder(a=a[13], b=b[13], c=c12, carry=c13, sum=out[13]);
+    FullAdder(a=a[14], b=b[14], c=c13, carry=c14, sum=out[14]);
+    FullAdder(a=a[15], b=b[15], c=c14, carry=false, sum=out[15]);
+    */
+ 
+    /*
+    Carry Select Adder
+    Reference:
+    https://www.youtube.com/watch?v=S2c7pAFdP84&ab_channel=MITOpenCourseWare
+    */
+    /*
+    HalfAdder(a=a[0], b=b[0], carry=c0, sum=out[0]);
+ 
+    FullAdder(a=a[1], b=b[1], c=false, carry=c1WithoutCarryIn, sum=s1WithoutCarryIn); 
+    FullAdder(a=a[1], b=b[1], c=true, carry=c1WithCarryIn, sum=s1WithCarryIn);        
+    Mux(a=s1WithoutCarryIn, b=s1WithCarryIn, sel=c0, out=out[1]);
+    Mux(a=c1WithoutCarryIn, b=c1WithCarryIn, sel=c0, out=c1);
+    
+    FullAdder(a=a[2], b=b[2], c=false, carry=c2WithoutCarryIn, sum=s2WithoutCarryIn); 
+    FullAdder(a=a[2], b=b[2], c=true, carry=c2WithCarryIn, sum=s2WithCarryIn);        
+    Mux(a=s2WithoutCarryIn, b=s2WithCarryIn, sel=c1, out=out[2]);
+    Mux(a=c2WithoutCarryIn, b=c2WithCarryIn, sel=c1, out=c2);
+    
+    FullAdder(a=a[3], b=b[3], c=false, carry=c3WithoutCarryIn, sum=s3WithoutCarryIn); 
+    FullAdder(a=a[3], b=b[3], c=true, carry=c3WithCarryIn, sum=s3WithCarryIn);        
+    Mux(a=s3WithoutCarryIn, b=s3WithCarryIn, sel=c2, out=out[3]);
+    Mux(a=c3WithoutCarryIn, b=c3WithCarryIn, sel=c2, out=c3);
+    
+    FullAdder(a=a[4], b=b[4], c=false, carry=c4WithoutCarryIn, sum=s4WithoutCarryIn); 
+    FullAdder(a=a[4], b=b[4], c=true, carry=c4WithCarryIn, sum=s4WithCarryIn);        
+    Mux(a=s4WithoutCarryIn, b=s4WithCarryIn, sel=c3, out=out[4]);
+    Mux(a=c4WithoutCarryIn, b=c4WithCarryIn, sel=c3, out=c4);
+    
+    FullAdder(a=a[5], b=b[5], c=false, carry=c5WithoutCarryIn, sum=s5WithoutCarryIn); 
+    FullAdder(a=a[5], b=b[5], c=true, carry=c5WithCarryIn, sum=s5WithCarryIn);        
+    Mux(a=s5WithoutCarryIn, b=s5WithCarryIn, sel=c4, out=out[5]);
+    Mux(a=c5WithoutCarryIn, b=c5WithCarryIn, sel=c4, out=c5);
+    
+    FullAdder(a=a[6], b=b[6], c=false, carry=c6WithoutCarryIn, sum=s6WithoutCarryIn); 
+    FullAdder(a=a[6], b=b[6], c=true, carry=c6WithCarryIn, sum=s6WithCarryIn);        
+    Mux(a=s6WithoutCarryIn, b=s6WithCarryIn, sel=c5, out=out[6]);
+    Mux(a=c6WithoutCarryIn, b=c6WithCarryIn, sel=c5, out=c6);
+    
+    FullAdder(a=a[7], b=b[7], c=false, carry=c7WithoutCarryIn, sum=s7WithoutCarryIn); 
+    FullAdder(a=a[7], b=b[7], c=true, carry=c7WithCarryIn, sum=s7WithCarryIn);        
+    Mux(a=s7WithoutCarryIn, b=s7WithCarryIn, sel=c6, out=out[7]);
+    Mux(a=c7WithoutCarryIn, b=c7WithCarryIn, sel=c6, out=c7);
+    
+    FullAdder(a=a[8], b=b[8], c=false, carry=c8WithoutCarryIn, sum=s8WithoutCarryIn); 
+    FullAdder(a=a[8], b=b[8], c=true, carry=c8WithCarryIn, sum=s8WithCarryIn);        
+    Mux(a=s8WithoutCarryIn, b=s8WithCarryIn, sel=c7, out=out[8]);
+    Mux(a=c8WithoutCarryIn, b=c8WithCarryIn, sel=c7, out=c8);
+    
+    FullAdder(a=a[9], b=b[9], c=false, carry=c9WithoutCarryIn, sum=s9WithoutCarryIn); 
+    FullAdder(a=a[9], b=b[9], c=true, carry=c9WithCarryIn, sum=s9WithCarryIn);        
+    Mux(a=s9WithoutCarryIn, b=s9WithCarryIn, sel=c8, out=out[9]);
+    Mux(a=c9WithoutCarryIn, b=c9WithCarryIn, sel=c8, out=c9);
+    
+    FullAdder(a=a[10], b=b[10], c=false, carry=c10WithoutCarryIn, sum=s10WithoutCarryIn);
+    FullAdder(a=a[10], b=b[10], c=true, carry=c10WithCarryIn, sum=s10WithCarryIn);    
+    Mux(a=s10WithoutCarryIn, b=s10WithCarryIn, sel=c9, out=out[10]);
+    Mux(a=c10WithoutCarryIn, b=c10WithCarryIn, sel=c9, out=c10);
+    
+    FullAdder(a=a[11], b=b[11], c=false, carry=c11WithoutCarryIn, sum=s11WithoutCarryIn);
+    FullAdder(a=a[11], b=b[11], c=true, carry=c11WithCarryIn, sum=s11WithCarryIn);    
+    Mux(a=s11WithoutCarryIn, b=s11WithCarryIn, sel=c10, out=out[11]);
+    Mux(a=c11WithoutCarryIn, b=c11WithCarryIn, sel=c10, out=c11);
+    
+    FullAdder(a=a[12], b=b[12], c=false, carry=c12WithoutCarryIn, sum=s12WithoutCarryIn);
+    FullAdder(a=a[12], b=b[12], c=true, carry=c12WithCarryIn, sum=s12WithCarryIn);    
+    Mux(a=s12WithoutCarryIn, b=s12WithCarryIn, sel=c11, out=out[12]);
+    Mux(a=c12WithoutCarryIn, b=c12WithCarryIn, sel=c11, out=c12);
+    
+    FullAdder(a=a[13], b=b[13], c=false, carry=c13WithoutCarryIn, sum=s13WithoutCarryIn);
+    FullAdder(a=a[13], b=b[13], c=true, carry=c13WithCarryIn, sum=s13WithCarryIn);
+    Mux(a=s13WithoutCarryIn, b=s13WithCarryIn, sel=c12, out=out[13]);
+    Mux(a=c13WithoutCarryIn, b=c13WithCarryIn, sel=c12, out=c13);
+    
+    FullAdder(a=a[14], b=b[14], c=false, carry=c14WithoutCarryIn, sum=s14WithoutCarryIn);
+    FullAdder(a=a[14], b=b[14], c=true, carry=c14WithCarryIn, sum=s14WithCarryIn);    
+    Mux(a=s14WithoutCarryIn, b=s14WithCarryIn, sel=c13, out=out[14]);
+    Mux(a=c14WithoutCarryIn, b=c14WithCarryIn, sel=c13, out=c14);
+    
+    FullAdder(a=a[15], b=b[15], c=false, carry=c15WithoutCarryIn, sum=s15WithoutCarryIn);
+    FullAdder(a=a[15], b=b[15], c=true, carry=c15WithCarryIn, sum=s15WithCarryIn);    
+    Mux(a=s15WithoutCarryIn, b=s15WithCarryIn, sel=c14, out=out[15]);
+    // Mux(a=c15WithoutCarryIn, b=c15WithCarryIn, sel=c14, out=discard);
+    */
+
+    /*
+    Carry Lookahead Adders
+    Reference:
+    https://www.youtube.com/watch?v=i1tUBZLWD3o&ab_channel=MITOpenCourseWare
+    https://www.youtube.com/watch?v=6Z1WikEWxH0&ab_channel=NesoAcademy
+    https://www.youtube.com/watch?v=9lyqSVKbyz8&ab_channel=NesoAcademy
+
+    G/g for generator
+    P/p for propagator
+    C/c for carry
+    S/s for sum
+
+    When propagator is true, it doesn't mean the current outputed carry has to be
+    true; it also depends on the carry input, or previous outputed carry.
+    */
+    And(a=a[0], b=b[0], out=g0);
+    Xor(a=a[0], b=b[0], out=p0);
+    Or(a=g0, b=false, out=c0);
+    Xor(a=p0, b=false, out=out[0]);
+
+    And(a=a[1], b=b[1], out=g1);
+    Xor(a=a[1], b=b[1], out=p1);
+    And(a=p1, b=c0, out=p1Nc0); 
+    Or(a=g1, b=p1Nc0, out=c1);  
+    Xor(a=p1, b=c0, out=out[1]);
+    
+    And(a=a[2], b=b[2], out=g2);
+    Xor(a=a[2], b=b[2], out=p2);
+    And(a=p2, b=c1, out=p2Nc1); 
+    Or(a=g2, b=p2Nc1, out=c2);  
+    Xor(a=p2, b=c1, out=out[2]);
+    
+    And(a=a[3], b=b[3], out=g3);
+    Xor(a=a[3], b=b[3], out=p3);
+    And(a=p3, b=c2, out=p3Nc2); 
+    Or(a=g3, b=p3Nc2, out=c3);  
+    Xor(a=p3, b=c2, out=out[3]);
+    
+    And(a=a[4], b=b[4], out=g4);
+    Xor(a=a[4], b=b[4], out=p4);
+    And(a=p4, b=c3, out=p4Nc3); 
+    Or(a=g4, b=p4Nc3, out=c4);  
+    Xor(a=p4, b=c3, out=out[4]);
+    
+    And(a=a[5], b=b[5], out=g5);
+    Xor(a=a[5], b=b[5], out=p5);
+    And(a=p5, b=c4, out=p5Nc4); 
+    Or(a=g5, b=p5Nc4, out=c5);  
+    Xor(a=p5, b=c4, out=out[5]);
+    
+    And(a=a[6], b=b[6], out=g6);
+    Xor(a=a[6], b=b[6], out=p6);
+    And(a=p6, b=c5, out=p6Nc5); 
+    Or(a=g6, b=p6Nc5, out=c6);  
+    Xor(a=p6, b=c5, out=out[6]);
+    
+    And(a=a[7], b=b[7], out=g7);
+    Xor(a=a[7], b=b[7], out=p7);
+    And(a=p7, b=c6, out=p7Nc6); 
+    Or(a=g7, b=p7Nc6, out=c7);  
+    Xor(a=p7, b=c6, out=out[7]);
+    
+    And(a=a[8], b=b[8], out=g8);
+    Xor(a=a[8], b=b[8], out=p8);
+    And(a=p8, b=c7, out=p8Nc7); 
+    Or(a=g8, b=p8Nc7, out=c8);  
+    Xor(a=p8, b=c7, out=out[8]);
+    
+    And(a=a[9], b=b[9], out=g9);
+    Xor(a=a[9], b=b[9], out=p9);
+    And(a=p9, b=c8, out=p9Nc8);
+    Or(a=g9, b=p9Nc8, out=c9);
+    Xor(a=p9, b=c8, out=out[9]);
+    
+    And(a=a[10], b=b[10], out=g10);
+    Xor(a=a[10], b=b[10], out=p10);
+    And(a=p10, b=c9, out=p10Nc9);
+    Or(a=g10, b=p10Nc9, out=c10);
+    Xor(a=p10, b=c9, out=out[10]);
+    
+    And(a=a[11], b=b[11], out=g11);
+    Xor(a=a[11], b=b[11], out=p11);
+    And(a=p11, b=c10, out=p11Nc10);
+    Or(a=g11, b=p11Nc10, out=c11);
+    Xor(a=p11, b=c10, out=out[11]);
+    
+    And(a=a[12], b=b[12], out=g12);
+    Xor(a=a[12], b=b[12], out=p12);
+    And(a=p12, b=c11, out=p12Nc11);
+    Or(a=g12, b=p12Nc11, out=c12);
+    Xor(a=p12, b=c11, out=out[12]);
+    
+    And(a=a[13], b=b[13], out=g13);
+    Xor(a=a[13], b=b[13], out=p13);
+    And(a=p13, b=c12, out=p13Nc12);
+    Or(a=g13, b=p13Nc12, out=c13);
+    Xor(a=p13, b=c12, out=out[13]);
+    
+    And(a=a[14], b=b[14], out=g14);
+    Xor(a=a[14], b=b[14], out=p14);
+    And(a=p14, b=c13, out=p14Nc13);
+    Or(a=g14, b=p14Nc13, out=c14);
+    Xor(a=p14, b=c13, out=out[14]);
+    
+    And(a=a[15], b=b[15], out=g15);
+    Xor(a=a[15], b=b[15], out=p15);
+    And(a=p15, b=c14, out=p15Nc14);
+    Or(a=g15, b=p15Nc14, out=c15);
+    Xor(a=p15, b=c14, out=out[15]);
 }
