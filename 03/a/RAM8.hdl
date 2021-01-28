@@ -16,13 +16,44 @@ CHIP RAM8 {
 
     PARTS:
     // Put your code here:
-    Demux(in=load, sel=address[2], a=sel0To3, b=sel4To7);
-    Demux(in=sel0To3, sel=address[1], a=sel01, b=sel23);
-    Demux(in=sel4To7, sel=address[1], a=sel45, b=sel67);
-    Demux(in=sel01, sel=address[0], a=sel0, b=sel1);
-    Demux(in=sel23, sel=address[0], a=sel2, b=sel3);
-    Demux(in=sel45, sel=address[0], a=sel4, b=sel5);
-    Demux(in=sel67, sel=address[0], a=sel6, b=sel7);
+    /*
+    Guide load bit to the correct register by the given address.
+    */
+    DMux(in=load, sel=address[2], a=sel0To3, b=sel4To7);
+    DMux(in=sel0To3, sel=address[1], a=sel01, b=sel23);
+    DMux(in=sel4To7, sel=address[1], a=sel45, b=sel67);
+    DMux(in=sel01, sel=address[0], a=sel0, b=sel1);
+    DMux(in=sel23, sel=address[0], a=sel2, b=sel3);
+    DMux(in=sel45, sel=address[0], a=sel4, b=sel5);
+    DMux(in=sel67, sel=address[0], a=sel6, b=sel7);
 
+    /*
+    Fan the input to all registers.
+    Each register processes the same input based on the load
+    bit it receives through three-layer demultiplexors.
+    */
     Register(in=in, load=sel0, out=output0);
+    Register(in=in, load=sel1, out=output1);
+    Register(in=in, load=sel2, out=output2);
+    Register(in=in, load=sel3, out=output3);
+    Register(in=in, load=sel4, out=output4);
+    Register(in=in, load=sel5, out=output5);
+    Register(in=in, load=sel6, out=output6);
+    Register(in=in, load=sel7, out=output7);
+
+    /*
+    Channel outputs through three-layer multiplexors
+    based on the address bits.
+    */
+    Mux16(a=output0, b=output1, sel=address[0], out=output01);
+    Mux16(a=output2, b=output3, sel=address[0], out=output23);
+    Mux16(a=output4, b=output5, sel=address[0], out=output45);
+    Mux16(a=output6, b=output7, sel=address[0], out=output67);
+    
+    /* second layer multiplexors */
+    Mux16(a=output01, b=output23, sel=address[1], out=output0to3);
+    Mux16(a=output45, b=output67, sel=address[1], out=output4to7);
+    
+    /* last layer multiplexor */
+    Mux16(a=output0to3, b=output4to7, sel=address[2], out=out);
 }
