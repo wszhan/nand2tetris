@@ -1,0 +1,58 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/03/b/RAM4K.hdl
+
+/**
+ * Memory of 4K registers, each 16 bit-wide. Out holds the value
+ * stored at the memory location specified by address. If load==1, then 
+ * the in value is loaded into the memory location specified by address 
+ * (the loaded value will be emitted to out from the next time step onward).
+ */
+
+/*
+Failed cases:
+
+1. 
+load 1
+in %B0101 0101 0101 0101 = %D21 845
+address %B0001 0101 0101 = %D341
+expected output: %D21 845
+*/
+CHIP RAM4K {
+    IN in[16], load, address[12];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    DMux(in=load, sel=address[11], a=sel0kTo2k, b=sel2kTo4k);
+
+    DMux(in=sel0kTo2k, sel=address[10], a=sel0kTo1k, b=sel1kTo2k);
+    DMux(in=sel2kTo4k, sel=address[10], a=sel2kTo3k, b=sel3kTo4k);
+    
+    DMux(in=sel0kTo1k, sel=address[9], a=sel0To511, b=sel512To1023);
+    DMux(in=sel1kTo2k, sel=address[9], a=sel1024To1535, b=sel1536To2047);
+    DMux(in=sel2kTo3k, sel=address[9], a=sel2048To2559, b=sel2560To3071);
+    DMux(in=sel3kTo4k, sel=address[9], a=sel3072To3583, b=sel3584To4095);
+
+    /* send to all RAM512 */
+    RAM512(in=in, address=address[0..8], load=sel0To511, out=RAM512Output0);
+    RAM512(in=in, address=address[0..8], load=sel512To1023, out=RAM512Output1);
+    RAM512(in=in, address=address[0..8], load=sel1024To1535, out=RAM512Output2);
+    RAM512(in=in, address=address[0..8], load=sel1536To2047, out=RAM512Output3);
+    RAM512(in=in, address=address[0..8], load=sel2048To2559, out=RAM512Output4);
+    RAM512(in=in, address=address[0..8], load=sel2560To3071, out=RAM512Output5);
+    RAM512(in=in, address=address[0..8], load=sel3072To3583, out=RAM512Output6);
+    RAM512(in=in, address=address[0..8], load=sel3584To4095, out=RAM512Output7);
+
+    /* choose the right output */
+    Mux16(a=RAM512Output0, b=RAM512Output1, sel=address[9], out=output0kTo1k);
+    Mux16(a=RAM512Output2, b=RAM512Output3, sel=address[9], out=output1kTo2k);
+    Mux16(a=RAM512Output4, b=RAM512Output5, sel=address[9], out=output2kTo3k);
+    Mux16(a=RAM512Output6, b=RAM512Output7, sel=address[9], out=output3kTo4k);
+    
+    Mux16(a=output0kTo1k, b=output1kTo2k, sel=address[10], out=output0kTo2k);
+    Mux16(a=output2kTo3k, b=output3kTo4k, sel=address[10], out=output2kTo4k);
+
+    Mux16(a=output0kTo2k, b=output2kTo4k, sel=address[11], out=out);
+}
