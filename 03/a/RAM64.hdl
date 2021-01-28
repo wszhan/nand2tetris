@@ -1,0 +1,60 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/03/a/RAM64.hdl
+
+/**
+ * Memory of 64 registers, each 16 bit-wide. Out holds the value
+ * stored at the memory location specified by address. If load==1, then 
+ * the in value is loaded into the memory location specified by address 
+ * (the loaded value will be emitted to out from the next time step onward).
+ */
+
+CHIP RAM64 {
+    IN in[16], load, address[6];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    /*
+    Apply the same logic as in RAM8 to the three most significant bits of
+    the given address, and feed the least significant three bits and the data
+    to the RAM8.
+    */
+    DMux(in=load, sel=address[5], a=sel0To31, b=sel32To63);
+
+    DMux(in=sel0To31, sel=address[4], a=sel0To15, b=sel16To31);
+    DMux(in=sel32To63, sel=address[4], a=sel32To47, b=sel48To63);
+
+    DMux(in=sel0To15, sel=address[3], a=sel0To7, b=sel8To15);
+    DMux(in=sel16To31, sel=address[3], a=sel16To23, b=sel24To31);
+
+    DMux(in=sel32To47, sel=address[3], a=sel32To39, b=sel40To47);
+    DMux(in=sel48To63, sel=address[3], a=sel48To55, b=sel56To63);
+
+    /*
+    Feed input and load big to eight different RAM8 chips and
+    get eight outputs from each chip.
+    */
+    RAM8(in=in, address=address[0..2], load=sel0To7, out=RAM8Output0);
+    RAM8(in=in, address=address[0..2], load=sel8To15, out=RAM8Output1);     
+    RAM8(in=in, address=address[0..2], load=sel16To23, out=RAM8Output2);    
+    RAM8(in=in, address=address[0..2], load=sel24To31, out=RAM8Output3);    
+    RAM8(in=in, address=address[0..2], load=sel32To39, out=RAM8Output4);    
+    RAM8(in=in, address=address[0..2], load=sel40To47, out=RAM8Output5);    
+    RAM8(in=in, address=address[0..2], load=sel48To55, out=RAM8Output6);    
+    RAM8(in=in, address=address[0..2], load=sel56To63, out=RAM8Output7); 
+
+    /*
+    Select the output from the designated register with the given address.
+    */
+    Mux16(a=RAM8Output0, b=RAM8Output1, sel=address[3], out=output0To15); 
+    Mux16(a=RAM8Output2, b=RAM8Output3, sel=address[3], out=output16To31);
+    Mux16(a=RAM8Output4, b=RAM8Output5, sel=address[3], out=output32To47);
+    Mux16(a=RAM8Output6, b=RAM8Output7, sel=address[3], out=output48To63);
+
+    Mux16(a=output0To15, b=output16To31, sel=address[4], out=output0To31);
+    Mux16(a=output32To47, b=output48To63, sel=address[4], out=output32To63);
+
+    Mux16(a=output0To31, b=output32To63, sel=address[5], out=out);
+}

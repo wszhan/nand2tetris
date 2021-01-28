@@ -1,0 +1,50 @@
+// This file is part of the materials accompanying the book 
+// "The Elements of Computing Systems" by Nisan and Schocken, 
+// MIT Press. Book site: www.idc.ac.il/tecs
+// File name: projects/03/b/RAM512.hdl
+
+/**
+ * Memory of 512 registers, each 16 bit-wide. Out holds the value
+ * stored at the memory location specified by address. If load==1, then 
+ * the in value is loaded into the memory location specified by address 
+ * (the loaded value will be emitted to out from the next time step onward).
+ */
+
+CHIP RAM512 {
+    IN in[16], load, address[9];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    /* Same logic as RAM8 and Register */
+    DMux(in=load, sel=address[8], a=sel0To255, b=sel256To511);
+
+    DMux(in=sel0To255, sel=address[7], a=sel0To127, b=sel128To255);
+    DMux(in=sel256To511, sel=address[7], a=sel256To383, b=sel384To511);
+
+    DMux(in=sel0To127, sel=address[6], a=sel0To63, b=sel64To127);
+    DMux(in=sel128To255, sel=address[6], a=sel128To191, b=sel192To255);
+    DMux(in=sel256To383, sel=address[6], a=sel256To319, b=sel320To383);
+    DMux(in=sel384To511, sel=address[6], a=sel384To447, b=sel448To511);
+
+    /* feed to 8 * RAM64 */
+    RAM64(in=in, address=address[0..5], load=sel0To63,    out=RAM64Output0);
+    RAM64(in=in, address=address[0..5], load=sel64To127,  out=RAM64Output1);
+    RAM64(in=in, address=address[0..5], load=sel128To191, out=RAM64Output2);
+    RAM64(in=in, address=address[0..5], load=sel192To255, out=RAM64Output3);
+    RAM64(in=in, address=address[0..5], load=sel256To319, out=RAM64Output4);
+    RAM64(in=in, address=address[0..5], load=sel320To383, out=RAM64Output5);
+    RAM64(in=in, address=address[0..5], load=sel384To447, out=RAM64Output6);
+    RAM64(in=in, address=address[0..5], load=sel448To511, out=RAM64Output7);
+
+    /* select the correct output */
+    Mux16(a=RAM64Output0, b=RAM64Output1, sel=address[6], out=output0To127);
+    Mux16(a=RAM64Output2, b=RAM64Output3, sel=address[6], out=output128To255);
+    Mux16(a=RAM64Output4, b=RAM64Output5, sel=address[6], out=output256To383);
+    Mux16(a=RAM64Output6, b=RAM64Output7, sel=address[6], out=output384To511);
+    
+    Mux16(a=output0To127, b=output128To255, sel=address[7], out=output0To255);
+    Mux16(a=output256To383, b=output384To511, sel=address[7], out=output256To511);
+
+    Mux16(a=output0To255, b=output256To511, sel=address[8], out=out);
+}

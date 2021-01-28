@@ -20,8 +20,10 @@ CHIP RAM8 {
     Guide load bit to the correct register by the given address.
     */
     DMux(in=load, sel=address[2], a=sel0To3, b=sel4To7);
+
     DMux(in=sel0To3, sel=address[1], a=sel01, b=sel23);
     DMux(in=sel4To7, sel=address[1], a=sel45, b=sel67);
+
     DMux(in=sel01, sel=address[0], a=sel0, b=sel1);
     DMux(in=sel23, sel=address[0], a=sel2, b=sel3);
     DMux(in=sel45, sel=address[0], a=sel4, b=sel5);
