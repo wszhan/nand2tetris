@@ -1,0 +1,38 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/03/b/RAM16K.hdl
+
+/**
+ * Memory of 16K registers, each 16 bit-wide. Out holds the value
+ * stored at the memory location specified by address. If load==1, then 
+ * the in value is loaded into the memory location specified by address 
+ * (the loaded value will be emitted to out from the next time step onward).
+ */
+
+CHIP RAM16K {
+    IN in[16], load, address[14];
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    /*
+    Note that only four, instead of eight, RAM4K are needed for this implementation.
+    */
+    DMux(in=load, sel=address[13], a=sel0kTo8k, b=sel8kTo16k);
+
+    DMux(in=sel0kTo8k, sel=address[12], a=sel0kTo4k, b=sel4kTo8k);
+    DMux(in=sel8kTo16k, sel=address[12], a=sel8kTo12k, b=sel12kTo16k);
+
+    /* Feed to four RAM4K */
+    RAM4K(in=in, load=sel0kTo4k, address=address[0..11], out=RAM4kOutput0);
+    RAM4K(in=in, load=sel4kTo8k, address=address[0..11], out=RAM4kOutput1);
+    RAM4K(in=in, load=sel8kTo12k, address=address[0..11], out=RAM4kOutput2);
+    RAM4K(in=in, load=sel12kTo16k, address=address[0..11], out=RAM4kOutput3);
+
+    /* select the right output */
+    Mux16(a=RAM4kOutput0, b=RAM4kOutput1, sel=address[12], out=output0kTo8k);
+    Mux16(a=RAM4kOutput2, b=RAM4kOutput3, sel=address[12], out=output8kTo16k);
+
+    Mux16(a=output0kTo8k, b=output8kTo16k, sel=address[13], out=out);
+}
