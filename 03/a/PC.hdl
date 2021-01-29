@@ -1,0 +1,49 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/03/a/PC.hdl
+
+/**
+ * A 16-bit counter with load and reset control bits.
+ * if      (reset[t] == 1) out[t+1] = 0
+ * else if (load[t] == 1)  out[t+1] = in[t]
+ * else if (inc[t] == 1)   out[t+1] = out[t] + 1  (integer addition)
+ * else                    out[t+1] = out[t]
+ */
+
+CHIP PC {
+    IN in[16],load,inc,reset;
+    OUT out[16];
+
+    PARTS:
+    // Put your code here:
+    /*
+    reset is the most prioritized; load follows; 
+    increment is the least prioritized.
+
+    The more prioritized a logic is, the later it shoud come
+    in the circuit so that it can override the changes made
+    previously by other gates.
+
+    Inc is a special one because it increments out(t-1), thus
+    it works after out is generated and operates on the out.
+
+    Based on the interface description, only one control bit is allowed
+    to be on at any clock cycle. Any on bit should trigger a new output
+    in the right next clock cycle.
+    */
+
+    /* load logic */
+    Mux16(a=incOutput, b=in, sel=load, out=loadOutput);
+    /* reset logic */
+    Mux16(a=loadOutput, b=false, sel=reset, out=resetOutput);
+
+    /* delay the output, and also determine whether to emit a new output */
+    Or(a=load, b=reset, out=resetOrLoad);
+    Or(a=resetOrLoad, b=inc, out=update);
+    Register(in=resetOutput, load=update, out=out, out=incInput);
+
+    /* increment logic */
+    Not(in=inc, out=notInc);
+    ALU(x=incInput, y=false, zx=notInc, nx=inc, zy=inc, ny=inc, f=inc, no=inc, out=incOutput);
+}
