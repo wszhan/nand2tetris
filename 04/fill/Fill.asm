@@ -11,10 +11,10 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// Put your code here.
-
+// total number of registers dedicated for SCREEN memory maps
 @8192
 D=A
+// store with variable symbols for readability purpose
 @screen_limit
 M=D
 
@@ -30,6 +30,7 @@ D;JEQ
 @FILL
 D;JNE
 
+// whenever a key is pressed down
 (FILL)
 @i
 D=M
@@ -48,6 +49,7 @@ M=M+1
 @FILL
 0;JMP
 
+// whenever no key is pressed down
 (CLEAR)
 @i
 D=M
