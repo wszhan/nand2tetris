@@ -32,7 +32,7 @@ DFF, which comes as a primitive chip in this course, could be confusing, especia
 
 ### Multiplication
 
-This is basically pretty easy, but it is a bit tricky to optimize the algorithm, especially given the restriction of 20 clock cycles. Two important tips:
+This is not difficult, but it is a bit tricky to optimize the algorithm, especially given the restriction of 20 clock cycles. Two important tips:
 - use as less user-defined symbols as possible to reduce the number of clock cycles to finish one mulitplication
 - arrange jumps and label symbols in a way to remove as many of them as possible.
 
