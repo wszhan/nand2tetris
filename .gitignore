@@ -1,5 +1,4 @@
 /demo
-/06
 /07
 /08
 /09
@@ -11,6 +10,7 @@
 /03/a/DFF.hdl
 /04/*/*.hack
 /04/mult/*20*.asm
+/06/*/*.asm
 
 *.zip
 *.tst
@@ -22,3 +22,7 @@
 *.java
 *.class
 *.hack
+*.bat
+
+!/06/*.java
+/06/Experiment.*
