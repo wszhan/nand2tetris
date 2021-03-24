@@ -21,7 +21,33 @@ public class VMTranslator {
 
                 // create file in the same path as .asm file
                 asmFileName = vmFileDir + "\\" + fileName + ASM_FILE_SUFFIX; 
+                VMParser vmparser = new VMParser(vmFile);
+                VM2AsmWriter asmWriter = new VM2AsmWriter(asmFileName);
 
+                // int count = 0;
+                while (vmparser.currentCommandLine() != null) {
+                    // count++;
+                    // System.out.printf("current line: %s\n", vmparser.currentCommandLine());
+
+                    // if (count > 20) return;
+
+                    if (vmparser.currentCommandType() == VMParser.C_ARITHEMETIC) {
+                        String curr = vmparser.currentCommandLine();
+                        asmWriter.writeArithmetic(curr);
+                    } else if (
+                        vmparser.currentCommandType() == VMParser.C_PUSH || 
+                        vmparser.currentCommandType() == VMParser.C_POP) {
+
+                        char commandType = vmparser.currentCommandType();
+                        String arg1 = vmparser.arg1();
+                        int arg2 = vmparser.arg2();
+                        asmWriter.writePushPop(commandType, arg1, arg2);
+                    }
+
+                    vmparser.advance();
+                }
+
+                asmWriter.finishWriting();
             } else { // single directory translation
 
             }

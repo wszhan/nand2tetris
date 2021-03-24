@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VM2AsmWriter {
 
@@ -31,13 +33,30 @@ public class VM2AsmWriter {
     private FileWriter writer;
     private String fileName; // no suffix
     private int staticVariableNumber;
+    private Map<String, String> binaryOperators, unaryOperators;
 
     public VM2AsmWriter(String fileName) {
         this(new File(fileName));
     }
     public VM2AsmWriter(File outputFile) {
         setFileName(outputFile.getPath());
+        initializeOperatorsTable();
         // createFileWriter(outputFile);
+    }
+    private void initializeOperatorsTable() {
+        binaryOperators = new HashMap<String, String>();
+        unaryOperators = new HashMap<String, String>();
+
+        binaryOperators.put("add", "+");
+        binaryOperators.put("sub", "-");
+        binaryOperators.put("gt", "-");
+        binaryOperators.put("lt", "-");
+        binaryOperators.put("eq", "-");
+        binaryOperators.put("and", "&");
+        binaryOperators.put("or", "|");
+
+        unaryOperators.put("neg", "-");
+        unaryOperators.put("not", "!");
     }
     private String getFileNameWithoutSuffix(File file) {
         String fileName = file.getName();
@@ -97,14 +116,74 @@ public class VM2AsmWriter {
 
 
     /* Arithmetic */
+    public void writeArithmetic(String arithmeticCommand) {
+        String res = translateArithmetic(arithmeticCommand);
+        writeToFile(res);
+    }
 
-    public void translateArithmetic(String arithmeticCommand) {
+    private String translateArithmetic(String arithmeticCommand) {
+        StringBuffer res = new StringBuffer();
 
+        if (binaryOperators.containsKey(arithmeticCommand)) {
+            binaryArithmetic(res, arithmeticCommand);
+        } else if (unaryOperators.containsKey(arithmeticCommand)) {
+            unaryArithmetic(res, arithmeticCommand);
+        } else {
+            throw new IllegalArgumentException(
+                "unknown arithmetic command : " + arithmeticCommand
+            );
+        }
+
+        res.append("\n");
+
+        return res.toString();
+    }
+    private void binaryArithmetic(StringBuffer buf, String command) {
+        String operator = binaryOperators.get(command);
+        decrementSP(buf);
+        accessSP(buf);
+
+        // retrive from stack
+        buf.append("D=M\n");
+
+        decrementSP(buf);
+        accessSP(buf);
+        buf.append("M=M" + operator + "D\n");
+
+        incrementSP(buf);
+    }
+    private void unaryArithmetic(StringBuffer buf, String command) {
+        String operator = unaryOperators.get(command);
+        accessSP(buf);
+        // operate in-place
+        buf.append("M=" + operator + "M");
     }
 
     /* Memory access */
 
-    public String translatePushPop(char commandType, String segment, int index) {
+    private void accessSP(StringBuffer buf) {
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+        buf.append("\nA=M\n");
+    }
+    private void decrementSP(StringBuffer buf) {
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+        buf.append("\n");
+        buf.append("M=M-1");
+        buf.append("\n");
+    }
+    private void incrementSP(StringBuffer buf) {
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+        buf.append("\n");
+        buf.append("M=M+1");
+        buf.append("\n");
+    }
+
+    public void writePushPop(char commandType, String segment, int index) {
+        String res = translatePushPop(commandType, segment, index);
+        writeToFile(res);
+    }
+
+    private String translatePushPop(char commandType, String segment, int index) {
         StringBuffer res = new StringBuffer();
 
         if (commandType == VMParser.C_PUSH) {
@@ -125,26 +204,28 @@ public class VM2AsmWriter {
         
         return res.toString();
     }
-    public StringBuffer pushAsm() {
+    private StringBuffer pushAsm() {
         StringBuffer res = new StringBuffer();
-        res.append(ADDR_REG);
-        res.append(STACK_POINTER_SYMBOL);
-        res.append("\n");
-        res.append("M=D");
-        res.append("\n");
-        res.append("M=M+1");
-        res.append("\n");
+
+        accessSP(res);
+
+        // push to *(*SP)
+        res.append("M=D\n");
+
+        incrementSP(res);
+
         return res;
     }
-    public StringBuffer popAsm() {
+    private StringBuffer popAsm() {
         StringBuffer res = new StringBuffer();
-        res.append(ADDR_REG);
-        res.append(STACK_POINTER_SYMBOL);
-        res.append("\n");
+
+        decrementSP(res);
+
+        accessSP(res);
+
+        // pop from
         res.append("D=M");
-        res.append("\n");
-        res.append("M=M-1");
-        res.append("\n");
+        
         return res;
     }
 
@@ -227,42 +308,8 @@ public class VM2AsmWriter {
         String fileName = vmFileName.substring(0, suffixIndex);
 
         String asmFileName = vmFileDir + "\\" + fileName + VMTranslator.ASM_FILE_SUFFIX;
-        File outputFile = new File(asmFileName);
-
         VMParser vmparser = new VMParser(vmFile);
-
-        // System.out.printf(
-        //     "\ncurrent line: %s\ncurrent line number: %d\ncurrent command type: %s\nnext command: %s\n",
-        //     vmparser.currentCommandLine(),
-        //     vmparser.currentLineNumber(),
-        //     ((vmparser.currentCommandType() == VMParser.C_PUSH || 
-        //         vmparser.currentCommandType() == VMParser.C_POP) ? "Push or pop command" : 
-        //         (vmparser.currentCommandType() == VMParser.C_ARITHEMETIC) ? "Arithmetic command" : null
-        //     ),
-        //     vmparser.nextCommandLine()
-        // );
-
         VM2AsmWriter asmWriter = new VM2AsmWriter(asmFileName);
-
-        String command, segment;
-        int index;
-
-        command = "push";
-        segment = "argument";
-        index = 7;
-
-        System.out.printf(
-            "Input command:\t%s\n",
-            command + " " + segment + " " + index
-        );
-        System.out.printf(
-            "Output asm code:\n%s",
-            asmWriter.translatePushPop(
-                command.equals("push") ? VMParser.C_PUSH : VMParser.C_POP,
-                segment,
-                index
-            )
-        );
 
         asmWriter.finishWriting();
     }
