@@ -41,9 +41,7 @@ public class Parser {
 
     public String nextCommand() {
         while (sc.hasNextLine()) {
-            // currentLine = sc.nextLine().trim();
             currentLine= sc.nextLine().trim();
-            // System.out.printf("Raw command: %s\n", rawCommand);
             if (!currentLine.isBlank() && !currentLine.startsWith(COMMENT_PREFIX)) {
                 currentLine = trimAsmCommand(currentLine);
                 this.commandType = currentCommandType();
@@ -64,7 +62,6 @@ public class Parser {
             int commentIndex = instruction.indexOf(COMMENT_PREFIX);
             if (commentIndex != -1) {
                 res = instruction.substring(0, commentIndex);
-                // System.out.println(res);
             }
 
             // remove white space
