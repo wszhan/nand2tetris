@@ -2,7 +2,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class VM2AsmWriter {
 
@@ -26,14 +28,21 @@ public class VM2AsmWriter {
     /* Static for variables */
     private final String STATIC_SEGMENT_NAME = "static";
 
+    /* Boolean commands label */
+    private final String SET_TRUE_LABEL = "SET_TRUE_";
+    private final String SET_FALSE_LABEL = "SET_FALSE_";
+    private final String COMPARISON_END_LABEL = "COMP_END_";
+
     /* Temp */
     private final String TEMP_SEGMENT_NAME = "temp";
     private final String TEMP_SYMBOL = "5";
 
+    /* Instance variables */
     private FileWriter writer;
     private String fileName; // no suffix
     private int staticVariableNumber;
-    private Map<String, String> binaryOperators, unaryOperators;
+    private int comparisonCount;
+    private Map<String, String> binaryOperators, unaryOperators, comparisons;
 
     public VM2AsmWriter(String fileName) {
         this(new File(fileName));
@@ -46,6 +55,7 @@ public class VM2AsmWriter {
     private void initializeOperatorsTable() {
         binaryOperators = new HashMap<String, String>();
         unaryOperators = new HashMap<String, String>();
+        comparisons = new HashMap<String, String>();
 
         binaryOperators.put("add", "+");
         binaryOperators.put("sub", "-");
@@ -57,6 +67,10 @@ public class VM2AsmWriter {
 
         unaryOperators.put("neg", "-");
         unaryOperators.put("not", "!");
+
+        comparisons.put("gt", "JGT");
+        comparisons.put("lt", "JLT");
+        comparisons.put("eq", "JEQ");
     }
     private String getFileNameWithoutSuffix(File file) {
         String fileName = file.getName();
@@ -76,15 +90,14 @@ public class VM2AsmWriter {
         File newFile = new File(filePath);
         createFileWriter(newFile);
         this.fileName = getFileNameWithoutSuffix(newFile.getName());
-        // System.out.printf(
-        //     "file name: %s\nfile name without suffix: %s\n",
-        //     newFile.getName(),
-        //     this.fileName
-        //     );
         this.staticVariableNumber = 0;
+        this.comparisonCount = 0;
     }
     private void createFileWriter(File newFile) {
         try {
+            // System.out.printf(
+            //     "new file name: %s\nnew file path: %s\n",
+            //     newFile.getName(), newFile.getPath());
             this.writer = new FileWriter(newFile);
         } catch (IOException e) {
             e.printStackTrace();
@@ -143,20 +156,53 @@ public class VM2AsmWriter {
         decrementSP(buf);
         accessSP(buf);
 
-        // retrive from stack
+        // retrive 2nd operand from stack
         buf.append("D=M\n");
 
         decrementSP(buf);
         accessSP(buf);
-        buf.append("M=M" + operator + "D\n");
+        // retrive 1st operand and do operation
+        buf.append("D=M" + operator + "D\n");
 
-        incrementSP(buf);
+        if (comparisons.containsKey(command)) {
+            comparisonAsm(buf, command);
+        } else {
+            pushAsm(buf);
+        }
     }
     private void unaryArithmetic(StringBuffer buf, String command) {
         String operator = unaryOperators.get(command);
+        decrementSP(buf);
         accessSP(buf);
-        // operate in-place
-        buf.append("M=" + operator + "M");
+        buf.append("D=" + operator + "M\n");
+        pushAsm(buf);
+    }
+    private void comparisonAsm(StringBuffer buf, String command) {
+        String setTrueLabel = SET_TRUE_LABEL + this.comparisonCount;
+        // String setFalseLabel = SET_FALSE_LABEL + this.comparisonCount;
+        String compEndLabel = COMPARISON_END_LABEL + this.comparisonCount;
+        this.comparisonCount++;
+
+        buf.append(ADDR_REG + setTrueLabel + "\n");
+        buf.append("D;");
+        buf.append(comparisons.get(command));
+        buf.append("\n");
+
+        // false
+        buf.append("@0\nD=A\n");
+        pushAsm(buf);
+        buf.append("@" + compEndLabel + "\n0; JMP\n");
+        
+        // true
+        buf.append(
+            "(" + setTrueLabel + ")" + "\n" + "@1\nD=A\n"
+        );
+        pushAsm(buf);
+
+        // end
+        buf.append(
+            "(" + compEndLabel + ")"
+        );
     }
 
     /* Memory access */
@@ -190,13 +236,15 @@ public class VM2AsmWriter {
             res.append(
                 translateMemoryAccess(commandType, segment, index)
             );
-            res.append(
-                pushAsm()
-            );
+            pushAsm(res);
+            // res.append(
+            //     pushAsm()
+            // );
         } else if (commandType == VMParser.C_POP) {
-            res.append(
-                popAsm()
-            );
+            // res.append(
+            //     popAsm()
+            // );
+            popAsm(res);
             res.append(
                 translateMemoryAccess(commandType, segment, index)
             );
@@ -204,8 +252,8 @@ public class VM2AsmWriter {
         
         return res.toString();
     }
-    private StringBuffer pushAsm() {
-        StringBuffer res = new StringBuffer();
+    private void pushAsm(StringBuffer res) {
+        // StringBuffer res = new StringBuffer();
 
         accessSP(res);
 
@@ -214,10 +262,11 @@ public class VM2AsmWriter {
 
         incrementSP(res);
 
-        return res;
+        // return res;
     }
-    private StringBuffer popAsm() {
-        StringBuffer res = new StringBuffer();
+    private void popAsm(StringBuffer res) {
+    // private StringBuffer popAsm() {
+        // StringBuffer res = new StringBuffer();
 
         decrementSP(res);
 
@@ -226,7 +275,7 @@ public class VM2AsmWriter {
         // pop from
         res.append("D=M");
         
-        return res;
+        // return res;
     }
 
     /**

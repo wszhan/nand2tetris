@@ -16,6 +16,7 @@ public class VMTranslator {
                 File vmFile = new File(pathName);
                 String vmFileName = vmFile.getName();
                 String vmFileDir = vmFile.getParent();
+                vmFileDir = vmFileDir != null ? vmFileDir : ".";
                 int suffixIndex = vmFileName.indexOf(".");
                 String fileName = vmFileName.substring(0, suffixIndex);
 
@@ -23,6 +24,9 @@ public class VMTranslator {
                 asmFileName = vmFileDir + "\\" + fileName + ASM_FILE_SUFFIX; 
                 VMParser vmparser = new VMParser(vmFile);
                 VM2AsmWriter asmWriter = new VM2AsmWriter(asmFileName);
+                // System.out.printf(
+                //     "new file name: %s\nnew file path: %s\n",
+                //     asmFileName, vmFileDir);
 
                 // int count = 0;
                 while (vmparser.currentCommandLine() != null) {
