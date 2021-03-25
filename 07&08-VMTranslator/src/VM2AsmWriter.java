@@ -15,6 +15,8 @@ public class VM2AsmWriter {
     private final String LOCAL_SEGMENT_NAME = "local";
     private final String ARGUMENT_SEGMENT_NAME = "argument";
     private final String POINTER_SEGMENT_NAME = "pointer";
+    private final String THIS_SEGMENT_NAME = "this";
+    private final String THAT_SEGMENT_NAME = "that";
 
     private final String STACK_POINTER_SYMBOL = "SP";
     private final String LOCAL_SYMBOL = "LCL";
@@ -227,40 +229,122 @@ public class VM2AsmWriter {
         writeToFile(res);
     }
 
+    private void pushConstant(StringBuffer buf, int index) {
+        buf.append(ADDR_REG + index + "\n");
+        buf.append("D=A\n");
+    }
+    private void appendSegmentName(StringBuffer buf, String seg, int index) {
+
+        if (seg.equals(THIS_SEGMENT_NAME) || 
+            seg.equals(POINTER_SEGMENT_NAME) && index == 0) {
+            buf.append(THIS_SYMBOL);
+        } else if (
+            seg.equals(THAT_SEGMENT_NAME) || 
+            seg.equals(POINTER_SEGMENT_NAME) && index == 1) {
+            buf.append(THAT_SYMBOL);
+        } else if (seg.equals(TEMP_SEGMENT_NAME)) {
+            buf.append(TEMP_SYMBOL);
+            if (index > 7) {
+                throw new IllegalArgumentException(
+                    "temp segment overflow with index " + index
+                    );
+            }
+        } else if (seg.equals(STATIC_SEGMENT_NAME)) {
+            buf.append(this.fileName + "." + this.staticVariableNumber);
+
+            if (this.staticVariableNumber > 239) {
+                throw new IllegalArgumentException(
+                    "static segment overflow with index " + index
+                    );
+            }
+            this.staticVariableNumber++;
+        } else {
+            if (seg.equals(ARGUMENT_SEGMENT_NAME)) {
+                buf.append(ARGUMENT_SYMBOL);
+            } else if (seg.equals(LOCAL_SEGMENT_NAME)) {
+                buf.append(LOCAL_SYMBOL);
+            } 
+        }
+        buf.append("\n");
+    }
+    private void pushFromMemorySegment(StringBuffer buf, String seg, int index) {
+        buf.append(ADDR_REG);
+
+        appendSegmentName(buf, seg, index);
+        
+        // buf.append("D=A\n"); // read segment base address
+        // read basic address and read directly A register
+        if (seg.equals(TEMP_SEGMENT_NAME)) {
+            buf.append("D=A\n");
+        } else {
+            buf.append("D=M\n"); // read segment base address
+        }
+
+
+        buf.append(ADDR_REG + index + "\n");
+        buf.append("A=D+A\nD=M\n"); // A <- base + index and get D = Memory[Addr]
+        // Data in D register waiting to be pushed
+    }
+    private void popToMemorySegment(StringBuffer buf, String seg, int index) {
+        buf.append(ADDR_REG);
+
+        appendSegmentName(buf, seg, index);
+
+        if (seg.equals(TEMP_SEGMENT_NAME)) {
+            buf.append("D=A\n");
+        } else {
+            buf.append("D=M\n"); // read segment base address
+        }
+
+        buf.append(ADDR_REG + index + "\n");
+        buf.append("D=D+A\n");
+
+        // store computed segment address at current SP and decrement SP
+        // buf.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n");
+        // decrement SP, store computed segment address at SP+1 (abstractly out of stack)
+        decrementSP(buf);
+        buf.append("A=M+1\nM=D\n");
+
+        // buf.append("A=M\nM=D\n");
+        // buf.append("");
+
+        // get top from stack, store it in D register
+        buf.append("A=A-1\n"); // back to top (pointing at the data to be popped out)
+        buf.append("D=M\n");
+
+        // get computed segment address, access that address, and store D
+        buf.append("A=A+1\nA=M\nM=D\n");
+    }
     private String translatePushPop(char commandType, String segment, int index) {
         StringBuffer res = new StringBuffer();
 
         if (commandType == VMParser.C_PUSH) {
-            res.append(
-                translateMemoryAccess(commandType, segment, index)
-            );
+            if (segment.equals(CONSTANT_SEGMENT_NAME)) {
+                pushConstant(res, index);
+            } else {
+                pushFromMemorySegment(res, segment, index);
+                // res.append(
+                //     translateMemoryAccess(commandType, segment, index)
+                // );
+            }
             pushAsm(res);
-            // res.append(
-            //     pushAsm()
-            // );
         } else if (commandType == VMParser.C_POP) {
+            popToMemorySegment(res, segment, index);
+            // popAsm(res);
             // res.append(
-            //     popAsm()
+            //     translateMemoryAccess(commandType, segment, index)
             // );
-            popAsm(res);
-            res.append(
-                translateMemoryAccess(commandType, segment, index)
-            );
         }
         
         return res.toString();
     }
     private void pushAsm(StringBuffer res) {
-        // StringBuffer res = new StringBuffer();
-
         accessSP(res);
 
         // push to *(*SP)
         res.append("M=D\n");
 
         incrementSP(res);
-
-        // return res;
     }
     private void popAsm(StringBuffer res) {
     // private StringBuffer popAsm() {
@@ -271,7 +355,7 @@ public class VM2AsmWriter {
         accessSP(res);
 
         // pop from
-        res.append("D=M");
+        res.append("D=M\n");
         
         // return res;
     }
@@ -288,22 +372,13 @@ public class VM2AsmWriter {
         StringBuffer res = new StringBuffer();
         res.append(ADDR_REG);
 
-        // constant
-        if (seg.equals(CONSTANT_SEGMENT_NAME)) {
-            res.append(index);
-            res.append("\nD=A\n");
-            return res;
-        } else if (seg.equals(POINTER_SEGMENT_NAME)) {
-        // if (seg.equals(POINTER_SEGMENT_NAME)) {
-            if (index == 0) {
-                res.append(THIS_SYMBOL);
-            } else if (index == 1) {
-                res.append(THAT_SYMBOL);
-            } else {
-                throw new IllegalArgumentException(
-                    "incorrect index to access pointer segment - " + index
-                    );
-            }
+        if (seg.equals(THIS_SEGMENT_NAME) || 
+            seg.equals(POINTER_SEGMENT_NAME) && index == 0) {
+            res.append(THIS_SYMBOL);
+        } else if (
+            seg.equals(THAT_SEGMENT_NAME) || 
+            seg.equals(POINTER_SEGMENT_NAME) && index == 1) {
+            res.append(THAT_SYMBOL);
         } else if (seg.equals(TEMP_SEGMENT_NAME)) {
             res.append(TEMP_SYMBOL);
 
@@ -329,16 +404,25 @@ public class VM2AsmWriter {
             } 
         }
 
-        res.append("\nA=A+" + index + "\n");
-
-        if (commandType == VMParser.C_PUSH) {
-            res.append("D=M");
-        } else if (commandType == VMParser.C_POP) {
-            res.append("M=D");
-        }
-
-        res.append("\n");
+        res.append("\nD=M\n");
+        pushAsm(res);
+        res.append(ADDR_REG + index + "\n" + "D=A\n");
+        pushAsm(res);
+        binaryArithmetic(res, "add");
+        decrementSP(res); // now *SP + 1 holds the target address
         
+        
+        // popAsm(res);
+        // res.append("A=D\n");
+
+        // res.append("\nA=A+" + index + "\n");
+
+        // if (commandType == VMParser.C_PUSH) {
+        //     res.append("D=M");
+        // } else if (commandType == VMParser.C_POP) {
+        //     res.append("M=D");
+        // }
+
         return res;
     }
     private String translateStackPointerAccess(char commandType) {
