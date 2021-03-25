@@ -17,7 +17,7 @@ public class VMParser {
     private final String COMMENT_PREFIX = "//";
 
     private Scanner sc;
-    private String currentCommandLine, nextCommandLine;
+    private String currLine, nextLine; // valid lines (e.g. non-blank)
     private String currentCommand, currentArg1, currentArg2;
     private char currentCommandType = 0;
     private int currentCommandLineNumber = -1;
@@ -48,40 +48,40 @@ public class VMParser {
 
     // initialize instance variables
     private void initialize() {
-        this.currentCommandLine = readNextCommandFromStream();
-        this.nextCommandLine = readNextCommandFromStream();
+        this.currLine = readNextCommandFromStream();
+        this.nextLine = readNextCommandFromStream();
         this.currentCommandLineNumber = 0;
     }
-    private void initialize1() {
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine().trim();
+    // private void initialize1() {
+    //     while (sc.hasNextLine()) {
+    //         String line = sc.nextLine().trim();
 
-            if (validCommandLine(line)) {
-                this.currentCommandLine = trimVMCommandLine(line);
-                this.currentCommandLineNumber++;
+    //         if (validCommandLine(line)) {
+    //             this.currentCommandLine = trimVMCommandLine(line);
+    //             this.currentCommandLineNumber++;
 
-                // invalidate the current line, waiting to be processed
-                this.currentCommand = null;
-                this.currentArg1 = null;
-                this.currentArg2 = null;
-                this.currentCommandType = 0; 
+    //             // invalidate the current line, waiting to be processed
+    //             this.currentCommand = null;
+    //             this.currentArg1 = null;
+    //             this.currentArg2 = null;
+    //             this.currentCommandType = 0; 
 
-                while (sc.hasNextLine()) {
-                    String next = sc.nextLine().trim();
+    //             while (sc.hasNextLine()) {
+    //                 String next = sc.nextLine().trim();
 
-                    if (validCommandLine(next)) {
-                        this.nextCommandLine = trimVMCommandLine(next);
-                        return;
-                    }
-                }
+    //                 if (validCommandLine(next)) {
+    //                     this.nextCommandLine = trimVMCommandLine(next);
+    //                     return;
+    //                 }
+    //             }
 
-                // explicitly set nextCommandLine to be null
-                // input stream is exhausted
-                this.nextCommandLine = null;
-                return;
-            }
-        }
-    }
+    //             // explicitly set nextCommandLine to be null
+    //             // input stream is exhausted
+    //             this.nextCommandLine = null;
+    //             return;
+    //         }
+    //     }
+    // }
 
     private String readNextCommandFromStream() {
         while (sc.hasNextLine()) {
@@ -96,15 +96,15 @@ public class VMParser {
     }
 
     public boolean hasNextCommand() {
-        return this.nextCommandLine != null;
+        return this.nextLine != null;
     }
 
     /**
      * Move current line forward.
      */
     public void advance() {
-        if (this.nextCommandLine != null) {
-            currentCommandLine = this.nextCommandLine;
+        if (this.nextLine != null) {
+            this.currLine = nextCommandLine();
             this.currentCommandLineNumber++;
 
             // invalidate the current line, waiting to be processed
@@ -113,16 +113,16 @@ public class VMParser {
             this.currentArg2 = null;
             this.currentCommandType = 0; 
 
-            this.nextCommandLine = readNextCommandFromStream();
+            this.nextLine = readNextCommandFromStream();
         } else {
-            this.currentCommandLine = null;
+            this.currLine = null;
         }
     }
 
 
     public String currentCommandLine() {
-        if (currentCommandLine != null) {
-            return new String(currentCommandLine);
+        if (this.currLine != null) {
+            return trimVMCommandLine(this.currLine);
         }
         
         return null;
@@ -131,8 +131,8 @@ public class VMParser {
         return this.currentCommandLineNumber;
     }
     public char currentCommandType() {
-        if (this.currentCommandLine != null && this.currentCommandType == 0) {
-            String[] splited = this.currentCommandLine.split("\\s+");
+        if (this.currLine != null && this.currentCommandType == 0) {
+            String[] splited = currentCommandLine().split("\\s+");
 
             if (splited.length > 0) {
                 this.currentCommand = splited[0];
@@ -186,6 +186,7 @@ public class VMParser {
      * Remove appended comments.
      */
     private String trimVMCommandLine(String command) {
+        // System.out.printf("triming command:\t%s\n", command);
         if (command != null) {
             int commentIndex = command.indexOf(COMMENT_PREFIX);
 
@@ -193,13 +194,17 @@ public class VMParser {
                 command = command.substring(0, commentIndex);
             }
         }
+        // System.out.printf("result command:\t%s\n", command.trim());
 
-        return command;
+        return command.trim();
     }
 
     // TO BE REMOVED
     public String nextCommandLine() {
-        return this.nextCommandLine;
+        if (this.nextLine != null) {
+            return trimVMCommandLine(this.nextLine);
+        }
+        return null;
     }
 
     public static void main(String[] args) {

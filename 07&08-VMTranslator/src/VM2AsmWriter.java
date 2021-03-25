@@ -131,6 +131,7 @@ public class VM2AsmWriter {
     /* Arithmetic */
     public void writeArithmetic(String arithmeticCommand) {
         String res = translateArithmetic(arithmeticCommand);
+        // System.out.printf("raw arithmetic asm:\nSTART(%s)END\n", res);
         writeToFile(res);
     }
 
@@ -147,7 +148,7 @@ public class VM2AsmWriter {
             );
         }
 
-        res.append("\n");
+        // res.append("\n");
 
         return res.toString();
     }
@@ -191,17 +192,17 @@ public class VM2AsmWriter {
         // false
         buf.append("@0\nD=A\n");
         pushAsm(buf);
-        buf.append("@" + compEndLabel + "\n0; JMP\n");
+        buf.append("@" + compEndLabel + "\n0;JMP\n");
         
         // true
         buf.append(
-            "(" + setTrueLabel + ")" + "\n" + "@1\nD=A\n"
+            "(" + setTrueLabel + ")" + "\n" + "@1\nD=-A\n"
         );
         pushAsm(buf);
 
         // end
         buf.append(
-            "(" + compEndLabel + ")"
+            "(" + compEndLabel + ")\n"
         );
     }
 
@@ -213,19 +214,16 @@ public class VM2AsmWriter {
     }
     private void decrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
-        buf.append("\n");
-        buf.append("M=M-1");
-        buf.append("\n");
+        buf.append("\nM=M-1\n");
     }
     private void incrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
-        buf.append("\n");
-        buf.append("M=M+1");
-        buf.append("\n");
+        buf.append("\nM=M+1\n");
     }
 
     public void writePushPop(char commandType, String segment, int index) {
         String res = translatePushPop(commandType, segment, index);
+        // System.out.printf("raw push pop asm:\nSTART(%s)END\n", res);
         writeToFile(res);
     }
 
@@ -293,8 +291,7 @@ public class VM2AsmWriter {
         // constant
         if (seg.equals(CONSTANT_SEGMENT_NAME)) {
             res.append(index);
-            res.append("\n");
-            res.append("D=A\n");
+            res.append("\nD=A\n");
             return res;
         } else if (seg.equals(POINTER_SEGMENT_NAME)) {
         // if (seg.equals(POINTER_SEGMENT_NAME)) {
@@ -332,8 +329,7 @@ public class VM2AsmWriter {
             } 
         }
 
-        res.append("\n");
-        res.append("A=A+" + index + "\n");
+        res.append("\nA=A+" + index + "\n");
 
         if (commandType == VMParser.C_PUSH) {
             res.append("D=M");
