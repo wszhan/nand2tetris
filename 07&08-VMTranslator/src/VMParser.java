@@ -4,6 +4,10 @@ import java.util.Scanner;
 
 public class VMParser {
 
+    // for cleaning up whitespaces/comments
+    private final String COMMENT_PREFIX = "//";
+
+    // command types
     public final static char C_ARITHEMETIC = 1;
     public final static char C_PUSH = 2;
     public final static char C_POP = 3;
@@ -14,24 +18,25 @@ public class VMParser {
     public final static char C_RETURN = 8;
     public final static char C_CALL = 9;
 
-    private final String COMMENT_PREFIX = "//";
-
+    // instance variables
     private Scanner sc;
     private String currLine, nextLine; // valid lines (e.g. non-blank)
     private String currentCommand, currentArg1, currentArg2;
     private char currentCommandType = 0;
     private int currentCommandLineNumber = -1;
 
+    /**
+     * Constructors.
+     * @param fileName
+     */
     public VMParser(String fileName) {
         this(new File(fileName));
     }
 
+
     public VMParser(File file) {
         try {
             Scanner s = new Scanner(file);
-            // while (s.hasNextLine()) {
-            //     System.out.println(s.nextLine());
-            // }
             this.sc = s;
             initialize();
         } catch (Exception e) {
@@ -46,42 +51,14 @@ public class VMParser {
         initialize();
     }
 
+
     // initialize instance variables
     private void initialize() {
         this.currLine = readNextCommandFromStream();
         this.nextLine = readNextCommandFromStream();
         this.currentCommandLineNumber = 0;
     }
-    // private void initialize1() {
-    //     while (sc.hasNextLine()) {
-    //         String line = sc.nextLine().trim();
 
-    //         if (validCommandLine(line)) {
-    //             this.currentCommandLine = trimVMCommandLine(line);
-    //             this.currentCommandLineNumber++;
-
-    //             // invalidate the current line, waiting to be processed
-    //             this.currentCommand = null;
-    //             this.currentArg1 = null;
-    //             this.currentArg2 = null;
-    //             this.currentCommandType = 0; 
-
-    //             while (sc.hasNextLine()) {
-    //                 String next = sc.nextLine().trim();
-
-    //                 if (validCommandLine(next)) {
-    //                     this.nextCommandLine = trimVMCommandLine(next);
-    //                     return;
-    //                 }
-    //             }
-
-    //             // explicitly set nextCommandLine to be null
-    //             // input stream is exhausted
-    //             this.nextCommandLine = null;
-    //             return;
-    //         }
-    //     }
-    // }
 
     private String readNextCommandFromStream() {
         while (sc.hasNextLine()) {
@@ -91,16 +68,26 @@ public class VMParser {
             }
         }
         
+        // close the file while no more lines
         sc.close();
+
         return null;
     }
 
+
+    /**
+     * If there is more valid commands to be processed.
+     * @return
+     */
     public boolean hasNextCommand() {
         return this.nextLine != null;
     }
 
+
     /**
      * Move current line forward.
+     * In fact assign the next non-null string to the current one,
+     * and set the curent line to be null if no more line to go.
      */
     public void advance() {
         if (this.nextLine != null) {
@@ -120,11 +107,22 @@ public class VMParser {
     }
 
 
+    /**
+     * Preferred getter for this methods cleans up inline comments.
+     * @return
+     */
     public String currentCommandLine() {
         if (this.currLine != null) {
             return trimVMCommandLine(this.currLine);
         }
         
+        return null;
+    }
+    public String nextCommandLine() {
+        if (this.nextLine != null) {
+            return trimVMCommandLine(this.nextLine);
+        }
+
         return null;
     }
     public int currentLineNumber() {
@@ -186,7 +184,6 @@ public class VMParser {
      * Remove appended comments.
      */
     private String trimVMCommandLine(String command) {
-        // System.out.printf("triming command:\t%s\n", command);
         if (command != null) {
             int commentIndex = command.indexOf(COMMENT_PREFIX);
 
@@ -194,34 +191,7 @@ public class VMParser {
                 command = command.substring(0, commentIndex);
             }
         }
-        // System.out.printf("result command:\t%s\n", command.trim());
 
         return command.trim();
-    }
-
-    // TO BE REMOVED
-    public String nextCommandLine() {
-        if (this.nextLine != null) {
-            return trimVMCommandLine(this.nextLine);
-        }
-        return null;
-    }
-
-    public static void main(String[] args) {
-        File file = new File(args[0]);
-
-        VMParser vmparser = new VMParser(file);
-        vmparser.advance();
-        vmparser.advance();
-        System.out.printf(
-            "\ncurrent line: %s\ncurrent line number: %d\ncurrent command type: %s\nnext command: %s\n",
-            vmparser.currentCommandLine(),
-            vmparser.currentLineNumber(),
-            ((vmparser.currentCommandType() == VMParser.C_PUSH || 
-                vmparser.currentCommandType() == VMParser.C_POP) ? "Push or pop command" : 
-                (vmparser.currentCommandType() == VMParser.C_ARITHEMETIC) ? "Arithmetic command" : null
-            ),
-            vmparser.nextCommandLine()
-        );
     }
 }
