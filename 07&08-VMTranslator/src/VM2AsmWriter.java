@@ -274,15 +274,21 @@ public class VM2AsmWriter {
         
         // buf.append("D=A\n"); // read segment base address
         // read basic address and read directly A register
-        if (seg.equals(TEMP_SEGMENT_NAME)) {
+        if (seg.equals(TEMP_SEGMENT_NAME) || seg.equals(POINTER_SEGMENT_NAME)) {
+        // if (seg.equals(TEMP_SEGMENT_NAME)) {
+            // read segment directly from given address: pointer 0/1, temp
             buf.append("D=A\n");
         } else {
-            buf.append("D=M\n"); // read segment base address
+            // read segment base address: SP, LCL, ARG, THIS, THAT
+            buf.append("D=M\n"); 
         }
 
+        if (!seg.equals(POINTER_SEGMENT_NAME)) {
+            buf.append(ADDR_REG + index + "\n");
+            buf.append("A=D+A\n");
+        }
 
-        buf.append(ADDR_REG + index + "\n");
-        buf.append("A=D+A\nD=M\n"); // A <- base + index and get D = Memory[Addr]
+        buf.append("D=M\n"); // A <- base + index and get D = Memory[Addr]
         // Data in D register waiting to be pushed
     }
     private void popToMemorySegment(StringBuffer buf, String seg, int index) {
@@ -290,23 +296,20 @@ public class VM2AsmWriter {
 
         appendSegmentName(buf, seg, index);
 
-        if (seg.equals(TEMP_SEGMENT_NAME)) {
+        if (seg.equals(TEMP_SEGMENT_NAME) || seg.equals(POINTER_SEGMENT_NAME)) {
             buf.append("D=A\n");
         } else {
             buf.append("D=M\n"); // read segment base address
         }
 
-        buf.append(ADDR_REG + index + "\n");
-        buf.append("D=D+A\n");
+        if (!seg.equals(POINTER_SEGMENT_NAME)) {
+            buf.append(ADDR_REG + index + "\n");
+            buf.append("D=D+A\n");
+        }
 
-        // store computed segment address at current SP and decrement SP
-        // buf.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n");
         // decrement SP, store computed segment address at SP+1 (abstractly out of stack)
         decrementSP(buf);
         buf.append("A=M+1\nM=D\n");
-
-        // buf.append("A=M\nM=D\n");
-        // buf.append("");
 
         // get top from stack, store it in D register
         buf.append("A=A-1\n"); // back to top (pointing at the data to be popped out)
