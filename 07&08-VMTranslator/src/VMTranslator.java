@@ -21,7 +21,14 @@ public class VMTranslator {
                 String fileName = vmFileName.substring(0, suffixIndex);
 
                 // create file in the same path as .asm file
-                asmFileName = vmFileDir + "\\" + fileName + ASM_FILE_SUFFIX; 
+                // cross OS support
+                String osName = System.getProperty("os.name");
+                if (osName.contains("indows")) {
+                    asmFileName = vmFileDir + "\\" + fileName + ASM_FILE_SUFFIX; 
+                } else { // linux
+                    asmFileName = vmFileDir + "/" + fileName + ASM_FILE_SUFFIX; 
+                }
+
                 VMParser vmparser = new VMParser(vmFile);
                 VM2AsmWriter asmWriter = new VM2AsmWriter(asmFileName);
 
