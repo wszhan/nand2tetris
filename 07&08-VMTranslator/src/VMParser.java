@@ -1,5 +1,4 @@
 import java.io.File;
-import java.net.URL;
 import java.util.Scanner;
 
 public class VMParser {
@@ -77,7 +76,6 @@ public class VMParser {
 
     /**
      * If there is more valid commands to be processed.
-     * @return
      */
     public boolean hasNextCommand() {
         return this.nextLine != null;
@@ -125,9 +123,13 @@ public class VMParser {
 
         return null;
     }
+
+
     public int currentLineNumber() {
         return this.currentCommandLineNumber;
     }
+
+
     public char currentCommandType() {
         if (this.currLine != null && this.currentCommandType == 0) {
             String[] splited = currentCommandLine().split("\\s+");
@@ -156,9 +158,19 @@ public class VMParser {
 
         return this.currentCommandType;
     }
+
+
+    /**
+     * Memory segment
+     */
     public String arg1() {
         return new String(this.currentArg1);
     }
+
+
+    /**
+     * Index for memory segments, or constant. 
+     */
     public int arg2() {
         return Integer.parseInt(this.currentArg2);
     }
