@@ -1,4 +1,6 @@
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class VMParser {
@@ -23,6 +25,7 @@ public class VMParser {
     private String currentCommand, currentArg1, currentArg2;
     private char currentCommandType = 0;
     private int currentCommandLineNumber = -1;
+    private Map<String, Character> commandTypes;
 
     /**
      * Constructors.
@@ -53,9 +56,33 @@ public class VMParser {
 
     // initialize instance variables
     private void initialize() {
+        initializeCommandTypesTable();
         this.currLine = readNextCommandFromStream();
         this.nextLine = readNextCommandFromStream();
         this.currentCommandLineNumber = 0;
+    }
+    private void initializeCommandTypesTable() {
+        commandTypes = new HashMap<>();
+
+        commandTypes.put("push", C_PUSH);
+        commandTypes.put("pop", C_POP);
+        commandTypes.put("label", C_LABEL);
+        commandTypes.put("goto", C_GOTO);
+        commandTypes.put("if-goto", C_IF);
+        commandTypes.put("function", C_FUNCTION);
+        commandTypes.put("call", C_CALL);
+        commandTypes.put("return", C_RETURN);
+
+        // arithmetic and logical operations
+        commandTypes.put("add", C_ARITHEMETIC);
+        commandTypes.put("sub", C_ARITHEMETIC);
+        commandTypes.put("neg", C_ARITHEMETIC);
+        commandTypes.put("eq", C_ARITHEMETIC);
+        commandTypes.put("gt", C_ARITHEMETIC);
+        commandTypes.put("lt", C_ARITHEMETIC);
+        commandTypes.put("and", C_ARITHEMETIC);
+        commandTypes.put("or", C_ARITHEMETIC);
+        commandTypes.put("not", C_ARITHEMETIC);
     }
 
 
@@ -130,6 +157,11 @@ public class VMParser {
     }
 
 
+    /**
+     * Return command type (encoded in char) of the current command.
+     * 
+     * @return
+     */
     public char currentCommandType() {
         if (this.currLine != null && this.currentCommandType == 0) {
             String[] splited = currentCommandLine().split("\\s+");
@@ -147,18 +179,23 @@ public class VMParser {
 
             }
 
-            if (currentCommand.equals("push")) {
-                this.currentCommandType = C_PUSH;
-            } else if (currentCommand.equals("pop"))  {
-                this.currentCommandType = C_POP;
-            } else {
-                this.currentCommandType = C_ARITHEMETIC;
+            if (commandTypes.containsKey(currentCommand)) {
+                this.currentCommandType = commandTypes.get(currentCommand);
             }
+            // if (currentCommand.equals("push")) {
+            //     this.currentCommandType = C_PUSH;
+            // } else if (currentCommand.equals("pop"))  {
+            //     this.currentCommandType = C_POP;
+            // } else {
+            //     this.currentCommandType = C_ARITHEMETIC;
+            // }
         }
 
         return this.currentCommandType;
     }
-
+    public String currentComamnd() {
+        return new String(this.currentCommand);
+    }
 
     /**
      * Memory segment
@@ -169,7 +206,10 @@ public class VMParser {
 
 
     /**
-     * Index for memory segments, or constant. 
+     * Index for memory segments, or constant.
+     * 
+     * Number of arguments (function call), or
+     * number of local variables (function declaration).
      */
     public int arg2() {
         return Integer.parseInt(this.currentArg2);

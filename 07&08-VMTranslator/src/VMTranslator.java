@@ -42,7 +42,7 @@ public class VMTranslator {
 
             for (File file : inputFile.listFiles()) {
                 if (validVMFile(file)) {
-                    // parseAndWriteVMFile(file);
+                    parseAndWriteVMFile(file);
                 }
             }
         }
@@ -64,17 +64,33 @@ public class VMTranslator {
         VMParser vmparser = new VMParser(inputFile);
 
         while (vmparser.currentCommandLine() != null) {
-            if (vmparser.currentCommandType() == VMParser.C_ARITHEMETIC) {
+            char cmdType = vmparser.currentCommandType();
+
+            // System.out.printf("command line: %s\n", vmparser.currentCommandLine());
+
+            if (cmdType == VMParser.C_ARITHEMETIC) {
+            // if (vmparser.currentCommandType() == VMParser.C_ARITHEMETIC) {
                 String curr = vmparser.currentCommandLine();
                 asmWriter.writeArithmetic(curr);
             } else if (
-                vmparser.currentCommandType() == VMParser.C_PUSH || 
-                vmparser.currentCommandType() == VMParser.C_POP) {
+                cmdType == VMParser.C_PUSH || 
+                cmdType == VMParser.C_POP) {
 
                 char commandType = vmparser.currentCommandType();
                 String arg1 = vmparser.arg1();
                 int arg2 = vmparser.arg2();
                 asmWriter.writePushPop(commandType, arg1, arg2);
+            } else if (cmdType == VMParser.C_GOTO) {
+                String cmd = vmparser.currentComamnd();
+                String label = vmparser.arg1();
+                asmWriter.writeGoto(cmd, label);
+            } else if (cmdType == VMParser.C_IF) {
+                String cmd = vmparser.currentComamnd();
+                String label = vmparser.arg1();
+                asmWriter.writeIf(cmd, label);
+            } else if (cmdType == VMParser.C_LABEL) {
+                String label = vmparser.arg1();
+                asmWriter.writeLabel(label);
             }
 
             vmparser.advance();

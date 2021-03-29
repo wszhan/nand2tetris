@@ -39,7 +39,7 @@ public class VM2AsmWriter {
     private String fileName; // no suffix
     private int staticVariableNumber;
     private int comparisonCount;
-
+    private String currentFunctionName = null;
 
     /**
      * Constructors
@@ -147,6 +147,60 @@ public class VM2AsmWriter {
         }
     } 
 
+    /* Label */
+    public void writeLabel(String label) {
+        String res = "(" + functionLabel(label) + ")\n";
+        writeToFile(res);
+    }
+    // private String createLabelAsm(String label) {
+    //     String res = "(" + currentFunctionName + "$" + label + ")\n";
+    //     // String res = "label " + currentFunctionName + "$" + label;
+    //     return res;
+    // }
+    private String functionLabel(String label) {
+        String res;
+        
+        if (label.indexOf("$") != -1) {
+            res = label;
+        } else {
+            res = this.currentFunctionName + "$" + label; 
+        }
+
+        return res;
+    }
+
+    /* Function */
+    public void writeFunction(String function) {
+
+    }
+
+    /* Branching: goto and if-goto */
+
+    public void writeIf(String ifGotoCommand, String label) {
+        StringBuffer res = new StringBuffer();
+
+        // pop the top value
+        popAsm(res); 
+
+        // goto if true(value == -1)
+        // res.append("D=D+1\n");
+
+        // next line otherwise
+        res.append(ADDR_REG +  functionLabel(label) + "\n");
+        res.append("D;JNE\n");
+
+        writeToFile(res);
+    }
+    public void writeGoto(String gotoCommand, String label) {
+        StringBuffer res = new StringBuffer();
+
+        res.append(ADDR_REG + functionLabel(label) + "\n");
+
+        // write unconditional goto
+        res.append("0;JMP\n");
+
+        writeToFile(res);
+    }
 
     /* Arithmetic */
 
@@ -350,6 +404,10 @@ public class VM2AsmWriter {
 
     /* General helper functions */
 
+    private void popAsm(StringBuffer buf) {
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n");
+        buf.append("M=M-1\nA=M\nD=M\n");
+    }
     /**
      * Generic push, assuming the data to be pushed has already been
      * stored in D register.
