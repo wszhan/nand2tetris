@@ -33,6 +33,7 @@ public class VM2AsmWriter {
 
     /* Only initialized once */
     private Map<String, String> binaryOperators, unaryOperators, comparisons;
+    private Map<String, Integer> functionCalls;
 
     /* Instance variables */
     private FileWriter writer;
@@ -50,6 +51,7 @@ public class VM2AsmWriter {
     public VM2AsmWriter(File outputFile) {
         setFileName(outputFile.getPath());
         initializeOperatorsTable();
+        functionCalls = new HashMap<>();
     }
 
 
@@ -149,7 +151,8 @@ public class VM2AsmWriter {
 
     /* Label */
     public void writeLabel(String label) {
-        String res = "(" + functionLabel(label) + ")\n";
+        String res = encloseInParentheses(functionLabel(label)) + "\n";
+        // String res = "(" + functionLabel(label) + ")\n";
         writeToFile(res);
     }
     // private String createLabelAsm(String label) {
@@ -160,18 +163,119 @@ public class VM2AsmWriter {
     private String functionLabel(String label) {
         String res;
         
-        if (label.indexOf("$") != -1) {
-            res = label;
-        } else {
+        if (label.indexOf("$") == -1) {
             res = this.currentFunctionName + "$" + label; 
+        } else {
+            res = label;
         }
 
         return res;
     }
 
     /* Function */
-    public void writeFunction(String function) {
+    public void writeFunctionDeclaration(String funcName, int numberOfLocalVariables) {
+        this.currentFunctionName = funcName;
 
+        StringBuffer res = new StringBuffer();
+
+        res.append(encloseInParentheses(funcName) + "\n");
+
+        // push N zeros onto the stack
+        // N being the number of local variables
+        for (int i = 0; i < numberOfLocalVariables; i++) {
+            res.append("@0\nD=A\n");
+            pushAsm(res);
+        }
+
+        writeToFile(res);
+    }
+    public void writeCallFunction(String funcName, int numberOfArguments) {
+        StringBuffer res = new StringBuffer();
+
+        // callerFunctionName.calleFunctionName.currState
+        int returnAddressIndex;
+        if (functionCalls.containsKey(funcName)) {
+            returnAddressIndex = functionCalls.get(funcName) + 1;
+
+            // increment by 1
+            functionCalls.put(funcName, returnAddressIndex);
+        } else {
+            // initialize
+            functionCalls.put(funcName, 0);
+            returnAddressIndex = functionCalls.get(funcName);
+        }
+
+        String returnAddressLabel = funcName + "$ret." + returnAddressIndex;
+
+        // 1. push return address, LCL, ARG, THIS, THAT of caller
+        //    for reinstating caller's states
+        res.append(ADDR_REG + returnAddressLabel + "\n" + "D=M\n");
+        // res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n" + "D=M\n");
+        pushAsm(res); 
+        res.append(ADDR_REG + LOCAL_SYMBOL + "\n" + "D=M\n");
+        pushAsm(res); 
+        res.append(ADDR_REG + ARGUMENT_SYMBOL + "\n" + "D=M\n");
+        pushAsm(res); 
+        res.append(ADDR_REG + THIS_SYMBOL + "\n" + "D=M\n");
+        pushAsm(res); 
+        res.append(ADDR_REG + THAT_SYMBOL + "\n" + "D=M\n");
+        pushAsm(res); 
+
+        // 2. set ARG and LCL for callee
+        int calleeArg = numberOfArguments + 5; // 5 being the number of the above pushed values
+        res.append("@" + calleeArg + "\n" + "D=A\n");
+        res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n" + "D=M-D\n");
+        pushAsm(res);
+
+        accessSP(res);
+        res.append(ADDR_REG + LOCAL_SYMBOL + "\n" + "M=D\n");
+
+        // 3. goto callee
+        res.append("goto " + funcName + "\n");
+
+        // 4. label return address
+        res.append(encloseInParentheses(returnAddressLabel) + "\n");
+
+        writeToFile(res);
+    }
+
+
+    public void writeFunctionReturn() {
+        StringBuffer res = new StringBuffer();
+
+        // 1. save callee's LCL to a temp variable FRAME
+        //    in case the caller's return address is 
+        //    overwriteen
+        res.append(ADDR_REG + LOCAL_SYMBOL + "\n" + "D=M\n");
+        res.append("@FRAME\nM=D\n");
+
+        // 2. compute caller's return address
+        res.append("@5\nD=A\n@FRAME\nA=M-D\nD=M\n@RET\nM=D\n");
+        
+        // 3. pop the top value to *(callee's ARG)
+        popAsm(res);
+        res.append(ADDR_REG + ARGUMENT_SYMBOL + "\n");
+        res.append("A=M\nM=D\n");
+
+        // 4. reinstate caller's SP
+        res.append(ADDR_REG + ARGUMENT_SYMBOL + "\n");
+        res.append("D=M\n");
+        res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n");
+        res.append("M=D+1\n");
+
+        // 5. reinstate caller's THAT, THIS, ARG, LCL
+        res.append("@FRAME\nA=M-1\nD=M\n@THAT\nM=D\n");
+
+        res.append("@2\nD=A\n@FRAME\nA=M-D\nD=M\n@THIS\nM=D\n");
+        res.append("@3\nD=A\n@FRAME\nA=M-D\nD=M\n@ARG\nM=D\n");
+        res.append("@4\nD=A\n@FRAME\nA=M-D\nD=M\n@LCL\nM=D\n");
+
+        // 6. goto caller's return address
+        res.append("@RET\nA=M\n0;JMP\n");
+
+        writeToFile(res);
+
+        this.currentFunctionName = null;
     }
 
     /* Branching: goto and if-goto */
@@ -275,13 +379,16 @@ public class VM2AsmWriter {
         
         // true
         buf.append(
-            "(" + setTrueLabel + ")" + "\n" + "@1\nD=-A\n"
+            encloseInParentheses(setTrueLabel)
+            // "(" + setTrueLabel + ")" 
+            + "\n" + "@1\nD=-A\n"
         );
         pushAsm(buf);
 
         // end
         buf.append(
-            "(" + compEndLabel + ")\n"
+            encloseInParentheses(compEndLabel) + "\n"
+            // "(" + compEndLabel + ")\n"
         );
     }
 
@@ -404,6 +511,10 @@ public class VM2AsmWriter {
 
     /* General helper functions */
 
+    private String encloseInParentheses(String cmd) {
+        return "(" + cmd + ")";
+    }
+
     private void popAsm(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n");
         buf.append("M=M-1\nA=M\nD=M\n");
@@ -424,9 +535,23 @@ public class VM2AsmWriter {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
         buf.append("\nA=M\n");
     }
+    private void decrementSPByN(StringBuffer buf, int n) {
+        buf.append(ADDR_REG + n + "\n");
+        buf.append("D=A\n");
+
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+        buf.append("\nM=M-D\n");
+    }
     private void decrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
         buf.append("\nM=M-1\n");
+    }
+    private void incrementSPByN(StringBuffer buf, int n) {
+        buf.append(ADDR_REG + n + "\n");
+        buf.append("D=A\n");
+
+        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+        buf.append("\nM=M+D\n");
     }
     private void incrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);

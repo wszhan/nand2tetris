@@ -91,6 +91,14 @@ public class VMTranslator {
             } else if (cmdType == VMParser.C_LABEL) {
                 String label = vmparser.arg1();
                 asmWriter.writeLabel(label);
+            } else if (cmdType == VMParser.C_FUNCTION) {
+                String funcName = vmparser.arg1();
+                int numberOfLocalVariables = vmparser.arg2();
+                asmWriter.writeFunctionDeclaration(funcName, numberOfLocalVariables);
+            } else if (cmdType == VMParser.C_RETURN) {
+                asmWriter.writeFunctionReturn();
+            } else if (cmdType == VMParser.C_CALL) {
+
             }
 
             vmparser.advance();
