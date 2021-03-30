@@ -98,7 +98,9 @@ public class VMTranslator {
             } else if (cmdType == VMParser.C_RETURN) {
                 asmWriter.writeFunctionReturn();
             } else if (cmdType == VMParser.C_CALL) {
-
+                String funcName = vmparser.arg1();
+                int numberOfArguments = vmparser.arg2();
+                asmWriter.writeCallFunction(funcName, numberOfArguments);
             }
 
             vmparser.advance();

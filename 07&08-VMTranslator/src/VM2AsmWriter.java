@@ -3,6 +3,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 public class VM2AsmWriter {
 
@@ -40,7 +41,7 @@ public class VM2AsmWriter {
     private String fileName; // no suffix
     private int staticVariableNumber;
     private int comparisonCount;
-    private String currentFunctionName = null;
+    private Stack<String> currentFunctionName = null;
 
     /**
      * Constructors
@@ -49,9 +50,10 @@ public class VM2AsmWriter {
         this(new File(fileName));
     }
     public VM2AsmWriter(File outputFile) {
+        functionCalls = new HashMap<>();
+        currentFunctionName = new Stack<>();
         setFileName(outputFile.getPath());
         initializeOperatorsTable();
-        functionCalls = new HashMap<>();
     }
 
 
@@ -118,6 +120,7 @@ public class VM2AsmWriter {
     private void createFileWriter(File newFile) {
         try {
             this.writer = new FileWriter(newFile);
+            writeInit();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -149,6 +152,14 @@ public class VM2AsmWriter {
         }
     } 
 
+    /* Bootstrap Initialization Code */
+    public void writeInit() {
+        // writeToFile("@261\nD=A\n@SP\nM=D\n");
+        writeToFile("@256\nD=A\n@SP\nM=D\n");
+        // writeToFile("@Sys.init\n0;JMP\n");
+        writeCallFunction("Sys.init", 0);
+    }
+
     /* Label */
     public void writeLabel(String label) {
         String res = encloseInParentheses(functionLabel(label)) + "\n";
@@ -162,9 +173,10 @@ public class VM2AsmWriter {
     // }
     private String functionLabel(String label) {
         String res;
+        String funcName = this.currentFunctionName.empty() ? "null" : this.currentFunctionName.peek();
         
         if (label.indexOf("$") == -1) {
-            res = this.currentFunctionName + "$" + label; 
+            res = funcName + "$" + label; 
         } else {
             res = label;
         }
@@ -174,7 +186,11 @@ public class VM2AsmWriter {
 
     /* Function */
     public void writeFunctionDeclaration(String funcName, int numberOfLocalVariables) {
-        this.currentFunctionName = funcName;
+        // debug print
+        writeToFile("\n// function " + funcName + " " + numberOfLocalVariables + "\n");
+
+        // this.currentFunctionName = funcName;
+        this.currentFunctionName.push(funcName);
 
         StringBuffer res = new StringBuffer();
 
@@ -191,6 +207,9 @@ public class VM2AsmWriter {
     }
     public void writeCallFunction(String funcName, int numberOfArguments) {
         StringBuffer res = new StringBuffer();
+
+        // debug print
+        writeToFile("\n// call " + funcName + " " + numberOfArguments + "\n");
 
         // callerFunctionName.calleFunctionName.currState
         int returnAddressIndex;
@@ -209,7 +228,8 @@ public class VM2AsmWriter {
 
         // 1. push return address, LCL, ARG, THIS, THAT of caller
         //    for reinstating caller's states
-        res.append(ADDR_REG + returnAddressLabel + "\n" + "D=M\n");
+        // res.append(ADDR_REG + ARGUMENT_SYMBOL + "\n" + "D=M\n");
+        res.append(ADDR_REG + returnAddressLabel + "\n" + "D=A\n");
         // res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n" + "D=M\n");
         pushAsm(res); 
         res.append(ADDR_REG + LOCAL_SYMBOL + "\n" + "D=M\n");
@@ -225,13 +245,16 @@ public class VM2AsmWriter {
         int calleeArg = numberOfArguments + 5; // 5 being the number of the above pushed values
         res.append("@" + calleeArg + "\n" + "D=A\n");
         res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n" + "D=M-D\n");
-        pushAsm(res);
+        // new arg
+        res.append(ADDR_REG + ARGUMENT_SYMBOL + "\nM=D\n");
 
-        accessSP(res);
+        res.append(ADDR_REG + STACK_POINTER_SYMBOL + "\n" + "D=M\n");
+        // new lcl
         res.append(ADDR_REG + LOCAL_SYMBOL + "\n" + "M=D\n");
 
         // 3. goto callee
-        res.append("goto " + funcName + "\n");
+        res.append("@" + funcName + "\n0;JMP\n");
+        // res.append("goto " + funcName + "\n");
 
         // 4. label return address
         res.append(encloseInParentheses(returnAddressLabel) + "\n");
@@ -241,6 +264,10 @@ public class VM2AsmWriter {
 
 
     public void writeFunctionReturn() {
+        // debug print
+        String funcName = this.currentFunctionName.empty() ? "null" : this.currentFunctionName.peek();
+        writeToFile("\n// return\n// from function " + funcName + "\n");
+
         StringBuffer res = new StringBuffer();
 
         // 1. save callee's LCL to a temp variable FRAME
@@ -275,7 +302,7 @@ public class VM2AsmWriter {
 
         writeToFile(res);
 
-        this.currentFunctionName = null;
+        // this.currentFunctionName = null;
     }
 
     /* Branching: goto and if-goto */
