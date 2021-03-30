@@ -49,6 +49,12 @@ public class VMTranslator {
 
         endTranslating();
     }
+    private String filenameWithoutSuffix(String filenameWithSuffix) {
+        // String fileName = inputFile.getName();
+        int suffixIndex = filenameWithSuffix.indexOf(".");
+        String fileName = filenameWithSuffix.substring(0, suffixIndex);
+        return fileName;
+    }
 
     private boolean validVMFile(File inputFile) {
         String inputFileName = inputFile.getName();
@@ -62,6 +68,7 @@ public class VMTranslator {
 
     private void parseAndWriteVMFile(File inputFile) {
         VMParser vmparser = new VMParser(inputFile);
+        asmWriter.setCurrentInputFileName(filenameWithoutSuffix(inputFile.getName()));
 
         while (vmparser.currentCommandLine() != null) {
             char cmdType = vmparser.currentCommandType();

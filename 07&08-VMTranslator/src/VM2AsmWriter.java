@@ -38,7 +38,8 @@ public class VM2AsmWriter {
 
     /* Instance variables */
     private FileWriter writer;
-    private String fileName; // no suffix
+    private String outputFileName; // no suffix
+    private String currentInputFileName;
     private int staticVariableNumber;
     private int comparisonCount;
     private Stack<String> currentFunctionName = null;
@@ -101,6 +102,10 @@ public class VM2AsmWriter {
         return getFileNameWithoutSuffix(fileName);
     }
 
+    public void setCurrentInputFileName(String fileName) {
+        this.currentInputFileName = fileName;
+    }
+
 
     /**
      * Create a new file to write into with a new fileWriter.
@@ -111,7 +116,7 @@ public class VM2AsmWriter {
     public void setFileName(String filePath) {
         File newFile = new File(filePath);
         createFileWriter(newFile);
-        this.fileName = getFileNameWithoutSuffix(newFile.getName());
+        this.outputFileName = getFileNameWithoutSuffix(newFile.getName());
         this.staticVariableNumber = 0;
         this.comparisonCount = 0;
     }
@@ -450,7 +455,8 @@ public class VM2AsmWriter {
                     );
             }
         } else if (seg.equals(STATIC_SEGMENT_NAME)) {
-            buf.append(this.fileName + "." + this.staticVariableNumber);
+            // buf.append(this.currentInputFileName + "." + this.staticVariableNumber);
+            buf.append(this.currentInputFileName + "." + index);
 
             if (this.staticVariableNumber > 239) {
                 throw new IllegalArgumentException(
@@ -469,39 +475,53 @@ public class VM2AsmWriter {
     }
 
 
-    private void accessMemroySegment(StringBuffer buf, String seg, int index) {
+    private void accessMemroySegment(StringBuffer buf, char commandType, String seg, int index) {
         appendSegmentName(buf, seg, index);
 
         // read basic address and read directly A register
-        if (seg.equals(TEMP_SEGMENT_NAME) || seg.equals(POINTER_SEGMENT_NAME)) {
+        if (seg.equals(STATIC_SEGMENT_NAME)) {
+            if (commandType == VMParser.C_PUSH) {
+                buf.append("D=M\n");
+            } else if (commandType == VMParser.C_POP) {
+                buf.append("D=A\n");
+            }
+        } else if (seg.equals(TEMP_SEGMENT_NAME) || seg.equals(POINTER_SEGMENT_NAME)) {
+            // seg.equals(STATIC_SEGMENT_NAME)) {
             // read segment directly from given address: pointer 0/1, temp
             buf.append("D=A\n");
         } else {
+        // } else if (!seg.equals(STATIC_SEGMENT_NAME)) {
             // read segment base address: SP, LCL, ARG, THIS, THAT
             buf.append("D=M\n"); // read segment base address
         }
     }
-    private void pushFromMemorySegment(StringBuffer buf, String seg, int index) {
+    private void pushFromMemorySegment(StringBuffer buf, char commandType, String seg, int index) {
         buf.append(ADDR_REG);
 
-        accessMemroySegment(buf, seg, index);
+        accessMemroySegment(buf, commandType, seg, index);
 
         // No need to add index to pointer
         // symbol already added in the previous if block
-        if (!seg.equals(POINTER_SEGMENT_NAME)) {
+        if (!seg.equals(POINTER_SEGMENT_NAME) && !seg.equals(STATIC_SEGMENT_NAME)) {
+        // if (!seg.equals(POINTER_SEGMENT_NAME)) {
             buf.append(ADDR_REG + index + "\n");
             buf.append("A=D+A\n");
         }
 
-        buf.append("D=M\n"); 
+        if (!seg.equals(STATIC_SEGMENT_NAME)) {
+            buf.append("D=M\n"); 
+        }
         // Data in D register waiting to be pushed
+        // if (seg.equals(STATIC_SEGMENT_NAME)) {
+        //     System.out.println(buf);
+        // }
     }
-    private void popToMemorySegment(StringBuffer buf, String seg, int index) {
+    private void popToMemorySegment(StringBuffer buf, char commandType, String seg, int index) {
         buf.append(ADDR_REG);
 
-        accessMemroySegment(buf, seg, index);
+        accessMemroySegment(buf, commandType, seg, index);
 
-        if (!seg.equals(POINTER_SEGMENT_NAME)) {
+        if (!seg.equals(POINTER_SEGMENT_NAME) && !seg.equals(STATIC_SEGMENT_NAME)) {
             buf.append(ADDR_REG + index + "\n");
             buf.append("D=D+A\n");
         }
@@ -525,11 +545,15 @@ public class VM2AsmWriter {
             if (segment.equals(CONSTANT_SEGMENT_NAME)) {
                 pushConstant(res, index);
             } else {
-                pushFromMemorySegment(res, segment, index);
+                pushFromMemorySegment(res, commandType, segment, index);
             }
             pushAsm(res);
+            // if (segment.equals(STATIC_SEGMENT_NAME)) {
+            //     System.out.println(res);
+            // }
+
         } else if (commandType == VMParser.C_POP) {
-            popToMemorySegment(res, segment, index);
+            popToMemorySegment(res, commandType, segment, index);
         }
         
         return res.toString();
