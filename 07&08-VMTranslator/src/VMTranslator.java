@@ -68,7 +68,8 @@ public class VMTranslator {
 
     private void parseAndWriteVMFile(File inputFile) {
         VMParser vmparser = new VMParser(inputFile);
-        asmWriter.setCurrentInputFileName(filenameWithoutSuffix(inputFile.getName()));
+        asmWriter.setInputFile(inputFile);
+        // asmWriter.setCurrentInputFileName(filenameWithoutSuffix(inputFile.getName()));
 
         while (vmparser.currentCommandLine() != null) {
             char cmdType = vmparser.currentCommandType();

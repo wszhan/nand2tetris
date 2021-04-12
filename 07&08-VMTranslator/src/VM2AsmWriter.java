@@ -38,8 +38,9 @@ public class VM2AsmWriter {
 
     /* Instance variables */
     private FileWriter writer;
-    private String outputFileName; // no suffix
-    private String currentInputFileName;
+    // private String outputFileName; // no suffix
+    private File currentInputFile;
+    // private String currentInputFileName;
     private int staticVariableNumber;
     private int comparisonCount;
     private Stack<String> currentFunctionName = null;
@@ -53,7 +54,7 @@ public class VM2AsmWriter {
     public VM2AsmWriter(File outputFile) {
         functionCalls = new HashMap<>();
         currentFunctionName = new Stack<>();
-        setFileName(outputFile.getPath());
+        setOutputFileName(outputFile.getPath());
         initializeOperatorsTable();
     }
 
@@ -97,13 +98,16 @@ public class VM2AsmWriter {
     }
 
 
-    private String getFileNameWithoutSuffix(File file) {
-        String fileName = file.getName();
-        return getFileNameWithoutSuffix(fileName);
-    }
+    // private String getFileNameWithoutSuffix(File file) {
+    //     String fileName = file.getName();
+    //     return getFileNameWithoutSuffix(fileName);
+    // }
 
-    public void setCurrentInputFileName(String fileName) {
-        this.currentInputFileName = fileName;
+    public String currentInputFileName() {
+        String fileName = this.currentInputFile.getName();
+        String res = getFileNameWithoutSuffix(fileName);
+        // System.out.printf("input file name: %s\nprocessed name: %s\n", fileName, res);
+        return res;
     }
 
 
@@ -113,19 +117,36 @@ public class VM2AsmWriter {
      * 
      * @param fileName
      */
-    public void setFileName(String filePath) {
+    public void setOutputFileName(String filePath) {
         File newFile = new File(filePath);
         createFileWriter(newFile);
-        this.outputFileName = getFileNameWithoutSuffix(newFile.getName());
+        // this.outputFileName = getFileNameWithoutSuffix(newFile.getName());
         this.staticVariableNumber = 0;
         this.comparisonCount = 0;
     }
 
+    public void setInputFile(File newVMFile) {
+        this.currentInputFile = newVMFile;
+    }
+
+    private boolean skipInit(File inputFile) {
+        String inputFileName = inputFile.getName();
+
+        if (inputFileName.contains("SimpleFunction") || 
+            inputFileName.contains("BasicLoop") ||
+            inputFileName.contains("FibonacciSeries")) {
+                return true;
+            }
+
+        return false;
+    }
 
     private void createFileWriter(File newFile) {
         try {
             this.writer = new FileWriter(newFile);
-            writeInit();
+            if (!skipInit(newFile)) {
+                writeInit(newFile);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -158,11 +179,13 @@ public class VM2AsmWriter {
     } 
 
     /* Bootstrap Initialization Code */
-    public void writeInit() {
+    public void writeInit(File newFile) {
         // writeToFile("@261\nD=A\n@SP\nM=D\n");
         writeToFile("@256\nD=A\n@SP\nM=D\n");
         // writeToFile("@Sys.init\n0;JMP\n");
+        // if (newFile.isDirectory()) {
         writeCallFunction("Sys.init", 0);
+        // }
     }
 
     /* Label */
@@ -192,7 +215,7 @@ public class VM2AsmWriter {
     /* Function */
     public void writeFunctionDeclaration(String funcName, int numberOfLocalVariables) {
         // debug print
-        writeToFile("\n// function " + funcName + " " + numberOfLocalVariables + "\n");
+        // writeToFile("\n// function " + funcName + " " + numberOfLocalVariables + "\n");
 
         // this.currentFunctionName = funcName;
         this.currentFunctionName.push(funcName);
@@ -214,7 +237,7 @@ public class VM2AsmWriter {
         StringBuffer res = new StringBuffer();
 
         // debug print
-        writeToFile("\n// call " + funcName + " " + numberOfArguments + "\n");
+        // writeToFile("\n// call " + funcName + " " + numberOfArguments + "\n");
 
         // callerFunctionName.calleFunctionName.currState
         int returnAddressIndex;
@@ -271,7 +294,7 @@ public class VM2AsmWriter {
     public void writeFunctionReturn() {
         // debug print
         String funcName = this.currentFunctionName.empty() ? "null" : this.currentFunctionName.peek();
-        writeToFile("\n// return\n// from function " + funcName + "\n");
+        // writeToFile("\n// return\n// from function " + funcName + "\n");
 
         StringBuffer res = new StringBuffer();
 
@@ -456,7 +479,7 @@ public class VM2AsmWriter {
             }
         } else if (seg.equals(STATIC_SEGMENT_NAME)) {
             // buf.append(this.currentInputFileName + "." + this.staticVariableNumber);
-            buf.append(this.currentInputFileName + "." + index);
+            buf.append(currentInputFileName() + "." + index);
 
             if (this.staticVariableNumber > 239) {
                 throw new IllegalArgumentException(
@@ -586,24 +609,24 @@ public class VM2AsmWriter {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
         buf.append("\nA=M\n");
     }
-    private void decrementSPByN(StringBuffer buf, int n) {
-        buf.append(ADDR_REG + n + "\n");
-        buf.append("D=A\n");
+    // private void decrementSPByN(StringBuffer buf, int n) {
+    //     buf.append(ADDR_REG + n + "\n");
+    //     buf.append("D=A\n");
 
-        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
-        buf.append("\nM=M-D\n");
-    }
+    //     buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+    //     buf.append("\nM=M-D\n");
+    // }
     private void decrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
         buf.append("\nM=M-1\n");
     }
-    private void incrementSPByN(StringBuffer buf, int n) {
-        buf.append(ADDR_REG + n + "\n");
-        buf.append("D=A\n");
+    // private void incrementSPByN(StringBuffer buf, int n) {
+    //     buf.append(ADDR_REG + n + "\n");
+    //     buf.append("D=A\n");
 
-        buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
-        buf.append("\nM=M+D\n");
-    }
+    //     buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
+    //     buf.append("\nM=M+D\n");
+    // }
     private void incrementSP(StringBuffer buf) {
         buf.append(ADDR_REG + STACK_POINTER_SYMBOL);
         buf.append("\nM=M+1\n");
