@@ -273,22 +273,23 @@ public class JackTokenizer {
                     // tokenBuffer.add(currCandidate.toString());
                     currCandidate = new StringBuilder();
                 }
-                if (c == '>') {
-                // if (candidate.equals(">")) {
-                    currCandidate.append("&gt;");
-                } else if (c == '<') {
-                // } else if (candidate.equals("<")) {
-                    currCandidate.append("&lt;");
-                } else if (c == '&') {
-                // } else if (candidate.equals("&")) {
-                    currCandidate.append("&amp;");
-                } else if (c == '\"') {
-                // } else if (candidate.equals("\"")) {
-                    currCandidate.append("&quot;");
-                } else {
-                    currCandidate.append(c);
-                }
-                appendToBuffer(currCandidate.toString());
+                // if (c == '>') {
+                // // if (candidate.equals(">")) {
+                //     currCandidate.append("&gt;");
+                // } else if (c == '<') {
+                // // } else if (candidate.equals("<")) {
+                //     currCandidate.append("&lt;");
+                // } else if (c == '&') {
+                // // } else if (candidate.equals("&")) {
+                //     currCandidate.append("&amp;");
+                // } else if (c == '\"') {
+                // // } else if (candidate.equals("\"")) {
+                //     currCandidate.append("&quot;");
+                // } else {
+                //     currCandidate.append(c);
+                // }
+                appendToBuffer("" + c);
+                // appendToBuffer(currCandidate.toString());
                 // tokenBuffer.add(currCandidate.toString());
                 currCandidate = new StringBuilder(); // reset
             } else if (isWhitespace(c)) {
@@ -398,9 +399,9 @@ public class JackTokenizer {
 
         // write to XML after updating the currentTokenValue
         String tokenTypeString = tokenTypeXMLTag();
-        System.out.printf(
-            "token, tokenType, tokenTypeString - %s\t%s\t%s\n", 
-            tokenValue(), tokenType(), tokenTypeString);
+        // System.out.printf(
+        //     "token, tokenType, tokenTypeString - %s\t%s\t%s\n", 
+        //     tokenValue(), tokenType(), tokenTypeString);
         writeToFile("\t<" + tokenTypeString + ">");
         writeToFile(tokenValue());
         writeToFile("</" + tokenTypeString + ">\n");
@@ -440,9 +441,9 @@ public class JackTokenizer {
             res.append(keyword());
         } else if (token == Token.SYMBOL) {
             
-            if (currentTokenValue.equals(">")) {
+            if (currentTokenValue.equals("<")) {
                 res.append("&lt;");
-            } else if (currentTokenValue.equals("<")) {
+            } else if (currentTokenValue.equals(">")) {
                 res.append("&gt;");
             } else if (currentTokenValue.equals("&")) {
                 res.append("&amp;");
