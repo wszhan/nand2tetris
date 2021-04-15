@@ -3,13 +3,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
 
 public class JackTokenizer {
@@ -35,8 +32,7 @@ public class JackTokenizer {
     private Map<String, Keyword> keywordMap = null;
     private Set<Character> symbolSet = null;
     private LinkedList<String> tokenBuffer;
-    /* use private*/ public String currentTokenValue;
-    // private String currentTokenValue;
+    private String currentTokenValue;
     private String nextTokenValue;
     private Token currentTokenType;
 
@@ -281,8 +277,6 @@ public class JackTokenizer {
                 }
                 stringFlag = !stringFlag;
             } else if (symbolSet.contains(c)) { // encounter a symbol
-                // if (currCandidate.capacity() == 0) {
-                // if (!currCandidate.isEmpty()) {
                 if (!currCandidate.toString().isEmpty()) {
                     // take care of the possible token already in buffer
                     appendToBuffer(currCandidate.toString());
@@ -291,8 +285,6 @@ public class JackTokenizer {
                 appendToBuffer("" + c);
                 currCandidate = new StringBuilder(); // reset
             } else if (isWhitespace(c)) { // skip whitespaces
-                // if (currCandidate.capacity() == 0) {
-                // if (!currCandidate.isEmpty()) {
                 if (!currCandidate.toString().isEmpty()) {
                     appendToBuffer(currCandidate.toString());
                     currCandidate = new StringBuilder(); // reset
@@ -321,16 +313,6 @@ public class JackTokenizer {
      */
     private boolean isWhitespace(char c) {
         return c == ' ';
-        // String charString = c + "";
-        // if (
-        //     charString.equals("\t") ||
-        //     charString.equals("\s") ||
-        //     charString.equals("\n") ||
-        //     charString.equals(" ")) {
-        //     return true;
-        // }
-
-        // return false;
 
         // the following line does not compiler in Coursera's grader for
         // "illegal escape character", need further investigation
@@ -350,22 +332,11 @@ public class JackTokenizer {
         if (tokenBuffer.size() == 0) readTokensIntoBuffer();
         if (currentTokenValue == null && nextTokenValue == null) advance();
         boolean res = nextTokenValue != null || tokenBuffer.size() > 0;
-        // System.out.printf(
-        //     "buffer size - %d\ncurr - %s\nnext - %s\nres - %b\n", 
-        //     tokenBuffer.size(), currentTokenValue, nextTokenValue, res);
 
         if (!res) { // no more tokens from this input jack file
             writeToFile("</tokens>");
 
             endTokenization();
-            // try {
-            // System.out.printf("reader is ready? - %b\n", this.reader.ready());
-            // System.out.printf("writer is ready? - %b\n", this.writer.ready());
-            // } catch (IOException e) {
-            //     e.printStackTrace();
-            // }
-
-            // endTokenization();
         }
 
         return res;
@@ -395,9 +366,6 @@ public class JackTokenizer {
     
 
     public Token tokenType() {
-        // if (currentTokenValue == null) {
-        // System.out.printf("curr token - %s\n", currentTokenValue);
-        // }
         if (keywordMap.containsKey(currentTokenValue)) {
             currentTokenType = Token.KEYWORD;
         } else if (currentTokenValue.length() == 1 && 
@@ -418,19 +386,6 @@ public class JackTokenizer {
                 currentTokenType = Token.STRING_CONST;
             }
         }
-        // if (currentTokenType == null) {
-        //     System.out.printf(
-        //         "null tag found: token type - %s\ttoken value - %s\ntoken len: %d\n",
-        //         currentTokenType, currentTokenValue, currentTokenValue.length());
-
-        //     currentTokenValue = currentTokenValue.trim();
-
-        //     for (int i = 0; i < currentTokenValue.length(); i++) {
-        //         System.out.printf("index, char - %d, %c\n", i, currentTokenValue.charAt(i));
-        //     }
-
-        //     System.out.printf("keyword? - %b\n", keywordMap.containsKey(currentTokenValue.trim()));
-        // }
 
         return currentTokenType;
     }
@@ -513,9 +468,6 @@ public class JackTokenizer {
         } else if (token == Token.IDENTIFIER) {
             return "identifier";
         }
-        // System.out.printf(
-        //     "null tag found: token type - %s\ttoken value - %s\n",
-        //     token.toString(), currentTokenValue);
         return null;
     }
 

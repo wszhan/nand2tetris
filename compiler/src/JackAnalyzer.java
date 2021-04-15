@@ -1,5 +1,4 @@
 import java.io.File;
-import java.nio.file.Files;
 
 public class JackAnalyzer {
     /** Constants */
@@ -8,8 +7,8 @@ public class JackAnalyzer {
     public static final String EXTENSION_DELIMITER = ".";
 
     /** Instance Variables */
-    private JackTokenizer tokenizer;
-    private CompilationEngine engine;
+    // private JackTokenizer tokenizer;
+    // private CompilationEngine engine;
     private String pathDelimiter; // OS dependent
 
     public JackAnalyzer(String inputFileName) {
@@ -33,7 +32,7 @@ public class JackAnalyzer {
 
     /** Initialization */
     public void initializeTokenizer() {
-        this.tokenizer = new JackTokenizer();
+        // this.tokenizer = new JackTokenizer();
     }
 
     public void compileDirectory(File dir) {
@@ -49,16 +48,11 @@ public class JackAnalyzer {
         String fileNameWithoutExtension = absoluteFileNameWithoutExtension(jackFile);
         String outputTokenizedFileName = fileNameWithoutExtension + "T" + JackAnalyzer.XML_FILE_SUFFIX;
         String outputFileName = fileNameWithoutExtension + JackAnalyzer.XML_FILE_SUFFIX;
-        this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
-        // while (tokenizer.hasMoreTokens()) {
-        //     System.out.printf("curr token - %s\n", tokenizer.currentTokenValue);
-        //     tokenizer.advance();
-        // }
+        JackTokenizer tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
+        CompilationEngine engine = new CompilationEngine(tokenizer, new File(outputFileName));
 
-        // System.out.println("output file? " + outputFileName);
-        this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
-
-        // tokenizer.endTokenization(); // do we have to expose this one?
+        // this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
+        // this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
     }
 
 
