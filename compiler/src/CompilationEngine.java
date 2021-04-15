@@ -54,7 +54,7 @@ public class CompilationEngine {
     private void initKeywordConstants() {
         keywordConstants = new HashSet<>();
         keywordConstants.add("this"); 
-        keywordConstants.add("that"); 
+        keywordConstants.add("null"); 
         keywordConstants.add("true"); 
         keywordConstants.add("false"); 
     }
@@ -340,6 +340,9 @@ public class CompilationEngine {
             // if (currentToken.equals("if")) expectElseKeyword = true;
 
             // if/else keyword
+            // if (!currentToken.equals("if")) {
+            //     throw new RuntimeException("expect if and found " + currentToken);
+            // }
             writeCurrentToken();
             nextToken();
 
@@ -472,9 +475,9 @@ public class CompilationEngine {
         nextToken();
 
         // expression
-        // System.out.printf("BEFORE exp list - %s\n", currentToken);
+        System.out.printf("BEFORE exp list - %s\n", currentToken);
         compileExpressionList();
-        // System.out.printf("AFTER exp list - %s\n", currentToken);
+        System.out.printf("AFTER exp list - %s\n", currentToken);
 
         // System.out.printf("write right paren - %s\n", currentToken);
 
@@ -519,26 +522,48 @@ public class CompilationEngine {
      */
     public void compileExpression() {
         writeToOutputFile("<expression>\n"); // opening tag
+        System.out.printf("==== expression begins ====\n");
 
         if (
-            currentToken.equals("(") || 
+            // currentToken.equals("(") || 
             currentToken.equals("[") || 
             currentToken.equals("=")) {
-                throw new RuntimeException(
-                    "invalid first token in expression - " + currentToken
-                );
-            }
+            
+            throw new RuntimeException("invalid first token in expression - " + currentToken);
 
+        //     System.out.printf("nested term\n");
+        //     compileTerm();
+        //     // // write (
+        //     // writeCurrentToken();
+        //     // nextToken();
+
+        //     // compileExpression();
+
+        //     // // write )
+        //     // writeCurrentToken();
+        //     // nextToken();
+        }
+
+        // if (currentToken.equals("null")) {
+        //     System.out.printf("null token type - %s\n", currTokenType);
+        //     System.out.printf("keyword const? %b\n", keywordConstants.contains(currentToken));
+        // }
         int n = 0;
+        boolean unary = unaryOperators.contains(currentToken);
+
         while (
+            !currentToken.equals(",") && // end this expression and move on to the next
             !currentToken.equals(";") &&
             !currentToken.equals(")") &&
             !currentToken.equals("]")) {
             n++;
             if (n > 20) break;
-            // System.out.printf("exp get stuck with - %s\n", currentToken);
+            System.out.printf("exp get stuck with - %s\n", currentToken);
             // System.out.printf("tokenType - %s\n", currTokenType);
-            if (currTokenType == Token.IDENTIFIER || 
+            if (currentToken.equals("(")) {
+                compileTerm();
+            } else if (
+                currTokenType == Token.IDENTIFIER || 
                 currTokenType == Token.STRING_CONST||
                 currTokenType == Token.INT_CONST ||
                 currTokenType == Token.INT_CONST ||
@@ -547,18 +572,63 @@ public class CompilationEngine {
                 compileTerm();
             } else if (
                 unaryOperators.contains(currentToken) ||
-                binaryOperators.contains(currentToken)) {
-                writeCurrentToken();
-                nextToken();
+                binaryOperators.contains(currentToken)
+            ) {
+            // } else if (unaryOperators.contains(currentToken)) {
+            //     compileTerm();
+            // } else if (binaryOperators.contains(currentToken)) {
+                if (!unary) {
+                    // write operator
+                    writeCurrentToken();
+                    System.out.printf("operator - %s\n", currentToken);
+                    nextToken();
+                }
+
+                System.out.printf("left operend 1st token - %s\n", currentToken);
+                // operator always followed by expression
+                compileTerm();
+                // if (currTokenType == Token.IDENTIFIER) compileTerm();
+                // else compileExpression();
             }
         }
 
         System.out.printf("loop broken, current token - %s\n", currentToken);
+        System.out.printf("==== expression ends ====\n");
         writeToOutputFile("</expression>\n"); // closing tag
     }
     public void compileTerm() {
         writeToOutputFile("<term>\n"); // opening tag
+
+        // nested
+        if (currentToken.equals("(")) {
+            // left paranthesis
+            writeCurrentToken();
+            nextToken();
+
+            compileExpression();
+
+            // right paranthesis
+            writeCurrentToken();
+            nextToken();
+
+            writeToOutputFile("</term>\n"); // closing tag
+
+            return;
+        }
+
+        if (unaryOperators.contains(currentToken)) {
+            // write operator
+            writeCurrentToken();
+            nextToken();
+
+            compileTerm();
+
+            writeToOutputFile("</term>\n"); // closing tag
+
+            return;
+        }
         
+        // identifier
         writeCurrentToken();
         nextToken();
 
@@ -615,6 +685,7 @@ public class CompilationEngine {
         // }
 
         while (!currentToken.equals(")") || currentToken.equals(",")) {
+            System.out.printf("stuck exp list - %s\n", currentToken);
             // at least one expression
             if (currentToken.equals(",")) {
                 // write comma and move on to the next expression
@@ -624,6 +695,7 @@ public class CompilationEngine {
 
             compileExpression();
         }
+        System.out.printf("exit exp list - %s\n", currentToken);
 
         writeToOutputFile("</expressionList>\n"); // closing tag
     }
