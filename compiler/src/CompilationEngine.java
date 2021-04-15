@@ -136,6 +136,7 @@ public class CompilationEngine {
     }
 
     private void nextToken() {
+        // System.out.printf("token - %s\n", currentToken);
         if (nextToken != null) {
             currentToken = nextToken;
             currTokenType = tokenizer.tokenType();
@@ -254,57 +255,94 @@ public class CompilationEngine {
 
         // let keyword
         writeCurrentToken();
+        nextToken();
 
         // identifier
-        nextToken();
+        if (currTokenType != Token.IDENTIFIER) {
+            throw new RuntimeException("expect identifier and found " + currTokenType);
+        }
         writeCurrentToken();
+        nextToken();
+        // System.out.printf("before array access check - %s\n", currentToken);
+
+        // array access?
+        if (currentToken.equals("[")) {
+            // System.out.printf("[? - %s\n", currentToken);
+            // write [
+            writeCurrentToken();
+            nextToken();
+
+            // expression
+            compileExpression();
+
+            // ]
+            if (!currentToken.equals("]")) {
+                throw new RuntimeException("expect ] and found " + currentToken);
+            }
+            // System.out.printf("]? - %s\n", currentToken);
+            writeCurrentToken();
+            nextToken();
+        }
 
         // assignment symbol "="
-        nextToken();
+        if (!currentToken.equals("=")) {
+            throw new RuntimeException("expect = and found " + currentToken);
+        }
         writeCurrentToken();
+        nextToken();
 
         // expression
-        nextToken();
         compileExpression();
+        // System.out.printf("Token at the end of let statement - %s\n", currentToken);
+        // nextToken();
         // writeCurrentToken();
 
         // semi-colon; end of statement
+        if (!currentToken.equals(";")) {
+            throw new RuntimeException("expect ; and found " + currentToken);
+        }
         writeCurrentToken();
         nextToken();
-        // System.out.printf("After writing the ; - %s\n", currentToken);
+        // System.out.printf("Token at the end of let statement - %s\n", currentToken);
 
         writeToOutputFile("</letStatement>\n"); // closing tag
     }
     public void compileIf() {
         writeToOutputFile("<ifStatement>\n"); // opening tag
 
+        boolean ifClause = true;
+
         while (
-            currentToken.equals("if") || 
-            currentToken.equals("else")) {
+            currentToken.equals("if") && ifClause || 
+            currentToken.equals("else") && !ifClause) {
 
             // System.out.printf("inside if statement - %s\n", currentToken);
+
+            // if (currentToken.equals("if")) expectElseKeyword = true;
 
             // if/else keyword
             writeCurrentToken();
             nextToken();
 
-            // left paranthesis
-            if (!currentToken.equals("(")) {
-                throw new RuntimeException("expect left parenthesis");
-            }
-            writeCurrentToken();
-            nextToken();
+            if (ifClause) {
+                // left paranthesis
+                if (!currentToken.equals("(")) {
+                    throw new RuntimeException("expect left parenthesis");
+                }
+                writeCurrentToken();
+                nextToken();
 
-            // expression
-            compileExpression(); // no need to next
-            // nextToken();
+                // expression
+                compileExpression(); // no need to next
+                // nextToken();
 
-            // right paranthesis
-            if (!currentToken.equals(")")) {
-                throw new RuntimeException("expect right parenthesis - " + currentToken);
+                // right paranthesis
+                if (!currentToken.equals(")")) {
+                    throw new RuntimeException("expect right parenthesis - " + currentToken);
+                }
+                writeCurrentToken();
+                nextToken();
             }
-            writeCurrentToken();
-            nextToken();
 
             // left curly bracket 
             if (!currentToken.equals("{")) {
@@ -318,11 +356,13 @@ public class CompilationEngine {
 
             // right curly bracket 
             if (!currentToken.equals("}")) {
-                throw new RuntimeException("expect right curly bracket");
+                throw new RuntimeException("expect right curly bracket, and found " + currentToken);
             }
-
             writeCurrentToken();
             nextToken();
+
+            // next should be else clause if any
+            ifClause = !ifClause;
         }
 
         // System.out.printf("exit if with token - %s\n", currentToken);
@@ -336,21 +376,22 @@ public class CompilationEngine {
 
             // while keyword
             writeCurrentToken();
+            nextToken();
 
             // left paranthesis
             if (!currentToken.equals("(")) {
-                throw new RuntimeException("expect left parenthesis");
+                throw new RuntimeException("expect left parenthesis, found " + currentToken);
             }
             writeCurrentToken();
             nextToken();
 
             // expression
             compileExpression();
-            nextToken();
+            // nextToken();
 
             // right paranthesis
             if (!currentToken.equals(")")) {
-                throw new RuntimeException("expect right parenthesis");
+                throw new RuntimeException("expect right parenthesis, found " + currentToken);
             }
             writeCurrentToken();
             nextToken();
@@ -376,17 +417,18 @@ public class CompilationEngine {
         writeToOutputFile("</whileStatement>\n"); // closing tag
     }
     public void compileDo() {
+        System.out.printf("Do statement\n");
         writeToOutputFile("<doStatement>\n"); // opening tag
 
         // do keyword
         writeCurrentToken();
-        // System.out.printf("write do keyword - %s\n", currentToken);
+        System.out.printf("write do keyword - %s\n", currentToken);
         nextToken();
 
         // Class or method before left parenthesis
         while (!currentToken.equals("(")) {
 
-            // System.out.printf("stuck with ? - %s\n", currentToken);
+            System.out.printf("stuck with ? - %s\n", currentToken);
 
             // identifier: class name, method name, or class object name
             writeCurrentToken();
@@ -492,7 +534,7 @@ public class CompilationEngine {
             }
         }
 
-        // System.out.printf("loop broken, current token - %s\n", currentToken);
+        System.out.printf("loop broken, current token - %s\n", currentToken);
         writeToOutputFile("</expression>\n"); // closing tag
     }
     public void compileTerm() {
@@ -500,6 +542,25 @@ public class CompilationEngine {
         
         writeCurrentToken();
         nextToken();
+
+        if (currentToken.equals("[")) {
+            // write [
+            writeCurrentToken();
+            nextToken();
+
+            // expression
+            compileExpression();
+            // while (!currentToken.equals("]")) {
+
+            // }
+
+            if (!currentToken.equals("]")) {
+                throw new RuntimeException("expect ] and found " + currentToken);
+            } else {
+                writeCurrentToken();
+                nextToken();
+            }
+        }
 
         writeToOutputFile("</term>\n"); // closing tag
     }
@@ -601,7 +662,7 @@ public class CompilationEngine {
         nextToken();
 
         // local variables declaraction
-        if (currentToken.equals("var")) {
+        while (currentToken.equals("var")) {
             compileSubroutineVariableDeclaration();
         }
 
@@ -615,10 +676,14 @@ public class CompilationEngine {
         writeToOutputFile("</subroutineBody>\n"); // closing tag
 
     }
+
+    /**
+     * Compile one line of declaration only.
+     */
     public void compileSubroutineVariableDeclaration() {
         writeToOutputFile("<varDec>\n"); // opening tag
 
-        while (currentToken.equals("var")) {
+        // while (currentToken.equals("var")) {
             // System.out.printf("new declaration line\n");
             // var keyword
             writeCurrentToken();
@@ -649,7 +714,7 @@ public class CompilationEngine {
                     break;
                 }
             }
-        }
+        // }
 
         // System.out.printf("all local declaration ended \n");
         writeToOutputFile("</varDec>\n"); // closing tag
