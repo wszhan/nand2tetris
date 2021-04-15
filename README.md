@@ -39,3 +39,11 @@ This is not difficult, but it is a bit tricky to optimize the algorithm, especia
 ### Fill
 
 It is extremely important to differentiante D register and A register as well as their usage in the code while writing the machine code. Addresses are calculated, and as per the computed result manipulations are done.
+
+## Project 7 & 8: VM Translator
+
+Leave a note here to save someone's life probably: if you are uploading week 8's project file and the grader keeps failing your assignment, try rename the file to "project7.zip". It worked for me.
+
+## Project 10: Compiler part 1
+
+This assignment is not difficult; the syntax of Jack language is already pretty simplified for educational purposes by the professors. However, it can be very time-consuming, because the compiler needs to cope with all syntactically legitimate arrangement. Following the steps proposed by the professor is a good way to go.
