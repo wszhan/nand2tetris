@@ -208,6 +208,8 @@ public class JackTokenizer {
             String line;
             boolean multipleLineComment = false;
 
+            if (reader == null) return;
+
             while (
                 tokenBuffer.size() == 0 && (line = reader.readLine()) != null) {
 
@@ -324,6 +326,9 @@ public class JackTokenizer {
      * False is next is null.
      */
     public boolean hasMoreTokens() {
+        if (reader == null) return false;
+
+        // read more from buffer, if reader is not null
         if (tokenBuffer.size() == 0) readTokensIntoBuffer();
         if (currentTokenValue == null && nextTokenValue == null) advance();
         boolean res = nextTokenValue != null || tokenBuffer.size() > 0;
@@ -334,6 +339,7 @@ public class JackTokenizer {
         if (!res) { // no more tokens from this input jack file
             writeToFile("</tokens>");
 
+            endTokenization();
             // try {
             // System.out.printf("reader is ready? - %b\n", this.reader.ready());
             // System.out.printf("writer is ready? - %b\n", this.writer.ready());
@@ -457,8 +463,14 @@ public class JackTokenizer {
      */
     public void endTokenization() {
         try {
-            this.writer.close();
-            this.reader.close();
+            if (writer != null) {
+                this.writer.close();
+                writer = null;
+            }
+            if (reader != null) {
+                this.reader.close();
+                reader = null;
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

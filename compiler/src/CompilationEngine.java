@@ -136,7 +136,7 @@ public class CompilationEngine {
     }
 
     private void nextToken() {
-        System.out.printf("token - %s\n", currentToken);
+        // System.out.printf("token - %s\n", currentToken);
         if (nextToken != null) {
             currentToken = nextToken;
             currTokenType = tokenizer.tokenType();
@@ -439,18 +439,18 @@ public class CompilationEngine {
         writeToOutputFile("</whileStatement>\n"); // closing tag
     }
     public void compileDo() {
-        System.out.printf("Do statement\n");
+        // System.out.printf("Do statement\n");
         writeToOutputFile("<doStatement>\n"); // opening tag
 
         // do keyword
         writeCurrentToken();
-        System.out.printf("write do keyword - %s\n", currentToken);
+        // System.out.printf("write do keyword - %s\n", currentToken);
         nextToken();
 
         // Class or method before left parenthesis
         while (!currentToken.equals("(")) {
 
-            System.out.printf("stuck with ? - %s\n", currentToken);
+            // System.out.printf("stuck with ? - %s\n", currentToken);
 
             // identifier: class name, method name, or class object name
             writeCurrentToken();
@@ -475,9 +475,9 @@ public class CompilationEngine {
         nextToken();
 
         // expression
-        System.out.printf("BEFORE exp list - %s\n", currentToken);
+        // System.out.printf("BEFORE exp list - %s\n", currentToken);
         compileExpressionList();
-        System.out.printf("AFTER exp list - %s\n", currentToken);
+        // System.out.printf("AFTER exp list - %s\n", currentToken);
 
         // System.out.printf("write right paren - %s\n", currentToken);
 
@@ -522,7 +522,7 @@ public class CompilationEngine {
      */
     public void compileExpression() {
         writeToOutputFile("<expression>\n"); // opening tag
-        System.out.printf("==== expression begins ====\n");
+        // System.out.printf("==== expression begins ====\n");
 
         if (
             // currentToken.equals("(") || 
@@ -558,7 +558,7 @@ public class CompilationEngine {
             !currentToken.equals("]")) {
             n++;
             if (n > 20) break;
-            System.out.printf("exp get stuck with - %s\n", currentToken);
+            // System.out.printf("exp get stuck with - %s\n", currentToken);
             // System.out.printf("tokenType - %s\n", currTokenType);
             if (currentToken.equals("(")) {
                 compileTerm();
@@ -580,11 +580,11 @@ public class CompilationEngine {
                 if (!unary) {
                     // write operator
                     writeCurrentToken();
-                    System.out.printf("operator - %s\n", currentToken);
+                    // System.out.printf("operator - %s\n", currentToken);
                     nextToken();
                 }
 
-                System.out.printf("left operend 1st token - %s\n", currentToken);
+                // System.out.printf("left operend 1st token - %s\n", currentToken);
                 // operator always followed by expression
                 compileTerm();
                 // if (currTokenType == Token.IDENTIFIER) compileTerm();
@@ -592,8 +592,8 @@ public class CompilationEngine {
             }
         }
 
-        System.out.printf("loop broken, current token - %s\n", currentToken);
-        System.out.printf("==== expression ends ====\n");
+        // System.out.printf("loop broken, current token - %s\n", currentToken);
+        // System.out.printf("==== expression ends ====\n");
         writeToOutputFile("</expression>\n"); // closing tag
     }
     public void compileTerm() {
@@ -685,7 +685,7 @@ public class CompilationEngine {
         // }
 
         while (!currentToken.equals(")") || currentToken.equals(",")) {
-            System.out.printf("stuck exp list - %s\n", currentToken);
+            // System.out.printf("stuck exp list - %s\n", currentToken);
             // at least one expression
             if (currentToken.equals(",")) {
                 // write comma and move on to the next expression
@@ -695,7 +695,7 @@ public class CompilationEngine {
 
             compileExpression();
         }
-        System.out.printf("exit exp list - %s\n", currentToken);
+        // System.out.printf("exit exp list - %s\n", currentToken);
 
         writeToOutputFile("</expressionList>\n"); // closing tag
     }
