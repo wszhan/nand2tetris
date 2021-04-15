@@ -281,7 +281,9 @@ public class JackTokenizer {
                 }
                 stringFlag = !stringFlag;
             } else if (symbolSet.contains(c)) { // encounter a symbol
-                if (!currCandidate.isEmpty()) {
+                // if (currCandidate.capacity() == 0) {
+                // if (!currCandidate.isEmpty()) {
+                if (!currCandidate.toString().isEmpty()) {
                     // take care of the possible token already in buffer
                     appendToBuffer(currCandidate.toString());
                     currCandidate = new StringBuilder();
@@ -289,7 +291,9 @@ public class JackTokenizer {
                 appendToBuffer("" + c);
                 currCandidate = new StringBuilder(); // reset
             } else if (isWhitespace(c)) { // skip whitespaces
-                if (!currCandidate.isEmpty()) {
+                // if (currCandidate.capacity() == 0) {
+                // if (!currCandidate.isEmpty()) {
+                if (!currCandidate.toString().isEmpty()) {
                     appendToBuffer(currCandidate.toString());
                     currCandidate = new StringBuilder(); // reset
                 }
@@ -316,7 +320,21 @@ public class JackTokenizer {
      * White space excluding newline.
      */
     private boolean isWhitespace(char c) {
-        return (c == '\t' || c == '\s' || c == '\n' || c == ' ');
+        return c == ' ';
+        // String charString = c + "";
+        // if (
+        //     charString.equals("\t") ||
+        //     charString.equals("\s") ||
+        //     charString.equals("\n") ||
+        //     charString.equals(" ")) {
+        //     return true;
+        // }
+
+        // return false;
+
+        // the following line does not compiler in Coursera's grader for
+        // "illegal escape character", need further investigation
+        // return (c == '\t' || c == '\s' || c == '\n' || c == ' ');
     }
 
     /** APIs */
