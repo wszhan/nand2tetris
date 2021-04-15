@@ -50,13 +50,15 @@ public class JackAnalyzer {
         String outputTokenizedFileName = fileNameWithoutExtension + "T" + JackAnalyzer.XML_FILE_SUFFIX;
         String outputFileName = fileNameWithoutExtension + JackAnalyzer.XML_FILE_SUFFIX;
         this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
-
-        int n = 0;
-        // while (n < 500) {
-            tokenizer.readTokenFromStream();
-        //     n++;
+        // while (tokenizer.hasMoreTokens()) {
+        //     System.out.printf("curr token - %s\n", tokenizer.currentTokenValue);
+        //     tokenizer.advance();
         // }
-        tokenizer.endTokenization();
+
+        // System.out.println("output file? " + outputFileName);
+        this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
+
+        // tokenizer.endTokenization(); // do we have to expose this one?
     }
 
 
@@ -95,17 +97,9 @@ public class JackAnalyzer {
     public static void main(String[] args) {
         if (args != null && args.length == 1) {
             String path = args[0];
-        // String path = "../10/Square/SquareGame.jack";
             File file = new File(path);
 
             JackAnalyzer analyzer = new JackAnalyzer(file);
         }
-        // String path1 = "C:\\Users\\Yuen\\Documents\\nand2Tetris\\nand2tetris-software-suite\\projects\\10\\testFolder\\test1.jack";
-        // String path2 = "C:\\Users\\Yuen\\Documents\\nand2Tetris\\nand2tetris-software-suite\\projects\\10\\testFolder";
-
-        // File file1 = new File(path1);
-        // File file2 = new File(path2);
-
-        // JackAnalyzer analyzer = new JackAnalyzer(file2);
     }
 }

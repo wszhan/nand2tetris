@@ -35,7 +35,8 @@ public class JackTokenizer {
     private Map<String, Keyword> keywordMap = null;
     private Set<Character> symbolSet = null;
     private LinkedList<String> tokenBuffer;
-    private String currentTokenValue;
+    /* use private*/ public String currentTokenValue;
+    // private String currentTokenValue;
     private String nextTokenValue;
     private Token currentTokenType;
 
@@ -90,11 +91,11 @@ public class JackTokenizer {
             this.writer = new FileWriter(outputXMLFile);
             this.writer.write("<tokens>\n");
 
-            while (hasMoreTokens()) {
-                advance();
-            }
+            // while (hasMoreTokens()) {
+            //     advance();
+            // }
 
-            this.writer.write("</tokens>");
+            // this.writer.write("</tokens>");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,7 +179,7 @@ public class JackTokenizer {
      * 
      * If the buffer is empty, fill the buffer by reading from input stream.
      */
-    public String readTokenFromStream() {
+    private String readTokenFromStream() {
         if (tokenBuffer.size() == 0) {
             readTokensIntoBuffer();
         }
@@ -324,7 +325,26 @@ public class JackTokenizer {
      */
     public boolean hasMoreTokens() {
         if (tokenBuffer.size() == 0) readTokensIntoBuffer();
-        return nextTokenValue != null || tokenBuffer.size() > 0;
+        if (currentTokenValue == null && nextTokenValue == null) advance();
+        boolean res = nextTokenValue != null || tokenBuffer.size() > 0;
+        // System.out.printf(
+        //     "buffer size - %d\ncurr - %s\nnext - %s\nres - %b\n", 
+        //     tokenBuffer.size(), currentTokenValue, nextTokenValue, res);
+
+        if (!res) { // no more tokens from this input jack file
+            writeToFile("</tokens>");
+
+            // try {
+            // System.out.printf("reader is ready? - %b\n", this.reader.ready());
+            // System.out.printf("writer is ready? - %b\n", this.writer.ready());
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
+
+            // endTokenization();
+        }
+
+        return res;
     }
 
     /**
@@ -341,14 +361,19 @@ public class JackTokenizer {
         nextTokenValue = readTokenFromStream();
 
         // side effects: write to XML after updating the currentTokenValue
-        String tokenTypeString = tokenTypeXMLTag();
-        writeToFile("<" + tokenTypeString + "> ");
-        writeToFile(tokenValue());
-        writeToFile(" </" + tokenTypeString + ">\n");
+        if (currentTokenValue != null) {
+            String tokenTypeString = tokenTypeXMLTag();
+            writeToFile("<" + tokenTypeString + ">");
+            writeToFile(tokenValue());
+            writeToFile("</" + tokenTypeString + ">\n");
+        }
     }
     
 
     public Token tokenType() {
+        // if (currentTokenValue == null) {
+        // System.out.printf("curr token - %s\n", currentTokenValue);
+        // }
         if (keywordMap.containsKey(currentTokenValue)) {
             currentTokenType = Token.KEYWORD;
         } else if (currentTokenValue.length() == 1 && 
@@ -369,6 +394,19 @@ public class JackTokenizer {
                 currentTokenType = Token.STRING_CONST;
             }
         }
+        // if (currentTokenType == null) {
+        //     System.out.printf(
+        //         "null tag found: token type - %s\ttoken value - %s\ntoken len: %d\n",
+        //         currentTokenType, currentTokenValue, currentTokenValue.length());
+
+        //     currentTokenValue = currentTokenValue.trim();
+
+        //     for (int i = 0; i < currentTokenValue.length(); i++) {
+        //         System.out.printf("index, char - %d, %c\n", i, currentTokenValue.charAt(i));
+        //     }
+
+        //     System.out.printf("keyword? - %b\n", keywordMap.containsKey(currentTokenValue.trim()));
+        // }
 
         return currentTokenType;
     }
@@ -445,7 +483,9 @@ public class JackTokenizer {
         } else if (token == Token.IDENTIFIER) {
             return "identifier";
         }
-
+        // System.out.printf(
+        //     "null tag found: token type - %s\ttoken value - %s\n",
+        //     token.toString(), currentTokenValue);
         return null;
     }
 
