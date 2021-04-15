@@ -136,7 +136,7 @@ public class CompilationEngine {
     }
 
     private void nextToken() {
-        // System.out.printf("token - %s\n", currentToken);
+        System.out.printf("token - %s\n", currentToken);
         if (nextToken != null) {
             currentToken = nextToken;
             currTokenType = tokenizer.tokenType();
@@ -200,7 +200,26 @@ public class CompilationEngine {
         return res;
     }
     private void writeCurrentToken() {
-        writeTagAndValue(currTokenType.toString().toLowerCase(), currentToken);
+        String tag = currTokenType.toString().toLowerCase();
+        String outputToken = currentToken;
+
+        if (tag.contains("string")) {
+            tag = "stringConstant";
+        } else if (tag.contains("int")) {
+            tag = "integerConstant";
+        }
+
+        if (outputToken.equals("<")) {
+            outputToken = "&lt;";
+        } else if (outputToken.equals(">")) {
+            outputToken = "&gt;";
+        } else if (outputToken.equals("&")) {
+            outputToken = "&amp;";
+        } else if (outputToken.equals("\"")) {
+            outputToken = "&quot;";
+        }
+
+        writeTagAndValue(tag, outputToken);
     }
     private void writeTagAndValue(String tagName, String val) {
         writeToOutputFile(
@@ -543,6 +562,7 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
+        // array access
         if (currentToken.equals("[")) {
             // write [
             writeCurrentToken();
@@ -550,13 +570,35 @@ public class CompilationEngine {
 
             // expression
             compileExpression();
-            // while (!currentToken.equals("]")) {
-
-            // }
 
             if (!currentToken.equals("]")) {
                 throw new RuntimeException("expect ] and found " + currentToken);
             } else {
+                writeCurrentToken();
+                nextToken();
+            }
+        }
+        
+        // subroutine call
+        if (currentToken.equals(".")) {
+            // write dot operator
+            writeCurrentToken();
+            nextToken();
+
+            // subroutine identifier
+            writeCurrentToken();
+            nextToken();
+
+            if (!currentToken.equals("(")) {
+                throw new RuntimeException("expect ( and found " + currentToken);
+            } else {
+                // (
+                writeCurrentToken();
+                nextToken();
+
+                compileExpressionList();
+
+                // )
                 writeCurrentToken();
                 nextToken();
             }
