@@ -4,6 +4,7 @@ public class JackAnalyzer {
     /** Constants */
     public static final String JACK_FILE_SUFFIX = ".jack";
     public static final String XML_FILE_SUFFIX = ".xml";
+    public static final String VM_FILE_SUFFIX = ".vm";
     public static final String EXTENSION_DELIMITER = ".";
 
     /** Instance Variables */
@@ -16,7 +17,7 @@ public class JackAnalyzer {
     }
 
     public JackAnalyzer(File inputFile) {
-        if (inputFile == null) throw new IllegalArgumentException("null input file");
+        if (inputFile == null) throw new IllegalArgumentException("null jack file");
 
         getOSInfo(); // cross-OS support 
 
@@ -47,10 +48,14 @@ public class JackAnalyzer {
     public void compileSingleJackFile(File jackFile) {
         String fileNameWithoutExtension = absoluteFileNameWithoutExtension(jackFile);
         String outputTokenizedFileName = fileNameWithoutExtension + "T" + JackAnalyzer.XML_FILE_SUFFIX;
-        String outputFileName = fileNameWithoutExtension + JackAnalyzer.XML_FILE_SUFFIX;
+        String outXML = fileNameWithoutExtension + JackAnalyzer.XML_FILE_SUFFIX;
+        String outVM = fileNameWithoutExtension + JackAnalyzer.VM_FILE_SUFFIX;
         JackTokenizer tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
-        CompilationEngine engine = new CompilationEngine(tokenizer, new File(outputFileName));
-
+        CompilationEngine engine = new CompilationEngine(
+            tokenizer, 
+            new File(outXML),
+            new File(outVM)
+            );
         // this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
         // this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
     }

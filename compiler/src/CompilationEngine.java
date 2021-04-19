@@ -9,23 +9,31 @@ public class CompilationEngine {
     /** I/O */
     private JackTokenizer tokenizer;
     private FileWriter xmlWriter;
+    private VMWriter vmWriter;
+    private SymbolTable classSymbolTable, currSubroutineST;
 
     /** Instance variables */
     private String currentToken, nextToken;
     private Token currTokenType;
+    private String className;
 
     private Set<String> statementKeyword;
     private Set<String> dataTypes;
     private Set<String> unaryOperators, binaryOperators, keywordConstants;
 
     /** Compiler XXX methods */
-    public CompilationEngine(String inputJackFilePath, String outputXMLFilePath) {
-        this(new File(inputJackFilePath), new File(outputXMLFilePath));
+    public CompilationEngine(
+        String inputJackFilePath, 
+        String outputXMLFilePath, 
+        String outputVmFilePath) {
+        this(
+            new File(inputJackFilePath), new File(outputXMLFilePath), 
+            new File(outputVmFilePath));
     }
 
-    public CompilationEngine(File inputJackFile, File outputXMLFile) {
+    public CompilationEngine(File inputJackFile, File outputXMLFile, File outputVMFile) {
     }
-    public CompilationEngine(JackTokenizer jackTokenizer, File outputXMLFile) {
+    public CompilationEngine(JackTokenizer jackTokenizer, File outputXMLFile, File outputVMFile) {
         if (jackTokenizer == null || outputXMLFile == null) {
             throw new IllegalArgumentException("null input to constructor.");
         }
@@ -33,12 +41,19 @@ public class CompilationEngine {
         this.tokenizer = jackTokenizer;
 
         initInstanceVariables();
+        initClassName(outputVMFile);
+        this.vmWriter = new VMWriter(outputVMFile);
 
         try {
             this.xmlWriter = new FileWriter(outputXMLFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // String fileName = outputVMFile.getName();
+        // int idx = fileName.indexOf(".");
+        // String className = fileName.substring(0, idx);
+        // this.className = className;
 
         startCompiling();
     }
@@ -49,6 +64,13 @@ public class CompilationEngine {
         initDataTypes();
         initOperators();
         initKeywordConstants();
+        classSymbolTable = new SymbolTable(true); // class symbol table
+    }
+    private void initClassName(File outputVMFile) {
+        String fileName = outputVMFile.getName();
+        int idx = fileName.indexOf(".");
+        String className = fileName.substring(0, idx);
+        this.className = className;
     }
     private void initKeywordConstants() {
         keywordConstants = new HashSet<>();
@@ -108,6 +130,7 @@ public class CompilationEngine {
         }
 
         endCompilation();
+        vmWriter.close();
     }
 
     /**
@@ -627,19 +650,32 @@ public class CompilationEngine {
     /** Subroutines */
 
     public void compileSubroutine() {
+        String functionName = null;
+        int numberOfLocalVariables;
+        currSubroutineST = new SymbolTable(false); // boolean: not a class
+
         writeToOutputFile("<subroutineDec>\n"); // opening tag
 
-        compileSubroutineDeclaration();
+        functionName = compileSubroutineDeclaration();
 
-        compileSubroutineBody();
+        numberOfLocalVariables = compileSubroutineBody();
+
+        // System.out.printf("funcName, #ofVars - %s, %d\n", functionName, numberOfLocalVariables);
+        vmWriter.writeFunction(functionName, numberOfLocalVariables);
 
         writeToOutputFile("</subroutineDec>\n"); // closing tag
     }
 
-    public void compileSubroutineDeclaration() {
-
+    public String compileSubroutineDeclaration() {
+        String functionName;
         // keyword: function/method
         writeCurrentToken();
+        if (currentToken.equals("method")) {
+            // args[0] is the class instance itself, referenced by "this" keyword
+            currSubroutineST.define("this", className, VariableKind.ARG);
+        // } else if (currentToken.equals("function")) {
+            // args[0] is not "this" keyword in the case of function declaration
+        }
 
         // keyword: return type
         // could be keyword data type or custom type
@@ -648,6 +684,7 @@ public class CompilationEngine {
 
         // identifier: function or method name
         nextToken();
+        functionName = currentToken;
         writeCurrentToken();
 
         // left paranthesis
@@ -663,6 +700,7 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
+        return functionName;
     }
     public void compileParameterList() {
         writeToOutputFile("<parameterList>\n"); // opening tag
@@ -670,13 +708,19 @@ public class CompilationEngine {
         // right paranthesis if empty list, in which case just skip to the end
         // otherwise, go through the list
         while (!currentToken.equals(")")) {
+            String parameterType, parameterName;
             // keyword: type
             writeCurrentToken();
+            parameterType = currentToken;
             nextToken();
 
             // identifier
             writeCurrentToken();
+            parameterName = currentToken;
             nextToken();
+
+            // define a variable/symbol in subroutine ST
+            currSubroutineST.define(parameterName, parameterType, VariableKind.ARG);
 
             // list found, write the comma and move on,
             // wait for the writing of next type and variable
@@ -688,7 +732,8 @@ public class CompilationEngine {
 
         writeToOutputFile("</parameterList>\n"); // closing tag
     }
-    public void compileSubroutineBody() {
+    public int compileSubroutineBody() {
+        int nLocals = 0;
         writeToOutputFile("<subroutineBody>\n"); // opening tag
 
         // left curly bracket
@@ -700,7 +745,7 @@ public class CompilationEngine {
 
         // local variables declaraction
         while (currentToken.equals("var")) {
-            compileSubroutineVariableDeclaration();
+            nLocals += compileSubroutineVariableDeclaration();
         }
 
         // statements
@@ -711,13 +756,14 @@ public class CompilationEngine {
         nextToken();
 
         writeToOutputFile("</subroutineBody>\n"); // closing tag
-
+        return nLocals;
     }
 
     /**
      * Compile one line of declaration only.
      */
-    public void compileSubroutineVariableDeclaration() {
+    public int compileSubroutineVariableDeclaration() {
+        int currLineNumberOfVars = 0;
         writeToOutputFile("<varDec>\n"); // opening tag
 
         // var keyword
@@ -726,13 +772,18 @@ public class CompilationEngine {
 
         // keyword: type
         writeCurrentToken();
+        String varType = currentToken;
         nextToken();
 
         // during a variable declaration
         while (!currentToken.equals(";")) {
             // identifier
             writeCurrentToken();
+            String varName = currentToken;
             nextToken();
+
+            currSubroutineST.define(varName, varType, VariableKind.VAR); // locals
+            currLineNumberOfVars++;
 
             if (currentToken.equals(",")) { // list found
                 writeCurrentToken();
@@ -746,6 +797,7 @@ public class CompilationEngine {
         }
 
         writeToOutputFile("</varDec>\n"); // closing tag
+        return currLineNumberOfVars;
     }
 
     /** Classes */
@@ -803,12 +855,20 @@ public class CompilationEngine {
             currentToken.equals("static")) {
             writeToOutputFile("<classVarDec>\n"); // opening tag
 
-            // var keyword
+            VariableKind kind = VariableKind.NONE;
+            String type, varName;
+
+            // determine kind
+            if (currentToken.equals("field")) kind = VariableKind.FIELD;
+            else if (currentToken.equals("static")) kind = VariableKind.STATIC;
+
+            // field/static keyword
             writeCurrentToken();
             nextToken();
 
             // keyword: type
             writeCurrentToken();
+            type = currentToken;
             nextToken();
 
             // during a variable declaration
@@ -816,7 +876,9 @@ public class CompilationEngine {
 
                 // identifier
                 writeCurrentToken();
+                varName = currentToken;
                 nextToken();
+                classSymbolTable.define(varName, type, kind);
 
                 if (currentToken.equals(",")) { // list found
                     writeCurrentToken();
