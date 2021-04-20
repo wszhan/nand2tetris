@@ -33,7 +33,7 @@ public class VMWriter {
         writeToVMFile(command);
     }
     public void writeLabel(String label) {
-        writeToVMFile("(" + label + ")");
+        writeToVMFile("label " + label);
     }
     public void writeGoto(String label) {
         writeToVMFile("goto " + label);

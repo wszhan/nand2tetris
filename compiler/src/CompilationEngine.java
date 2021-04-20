@@ -21,6 +21,7 @@ public class CompilationEngine {
     private Set<String> statementKeyword;
     private Set<String> dataTypes;
     private Set<String> unaryOperators, binaryOperators, keywordConstants;
+    private int whileCount = 0, ifCount = 0;
 
     /** Compiler XXX methods */
     public CompilationEngine(
@@ -267,6 +268,7 @@ public class CompilationEngine {
     }
 
     public void compileLet() {
+        boolean arrayManipulation = false;
         writeToOutputFile("<letStatement>\n"); // opening tag
 
         // let keyword
@@ -283,12 +285,19 @@ public class CompilationEngine {
 
         // array access?
         if (currentToken.equals("[")) {
+            arrayManipulation = true;
+            // array access to the left of =
+            // 1. push base value onto Stack // for comparison, put it after step 2
+            // pushVariableOntoStack(varToBeDefined);
+
             // write [
             writeCurrentToken();
             nextToken();
 
+            // 2. push expression value onto stack
             // expression
             compileExpression();
+            pushVariableOntoStack(varToBeDefined);
 
             // ]
             if (!currentToken.equals("]")) {
@@ -296,6 +305,9 @@ public class CompilationEngine {
             }
             writeCurrentToken();
             nextToken();
+
+            // 3. add up but delay the assignment to THAT
+            vmWriter.writeArithmetic("add");
         }
 
         // assignment symbol "="
@@ -315,11 +327,19 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
+        if (arrayManipulation) {
+            vmWriter.writePop(VirtualSegment.TEMP, 0); // store temporarily at temp[0]
+            vmWriter.writePop(VirtualSegment.POINTER, 1); // that = (arr + i)
+            vmWriter.writePush(VirtualSegment.TEMP, 0); // evaluated epxression result
+            vmWriter.writePop(VirtualSegment.THAT, 0); // *that = *(arr + i) <- exp value
+        } else {
+            popValueToVariable(varToBeDefined);
+        }
         // assignment
-        VariableKind kind = getVariableKind(varToBeDefined);
-        int idx = getVariableIndex(varToBeDefined);
-        VirtualSegment seg = kindToVirtualSegment(kind);
-        vmWriter.writePop(seg, idx);
+        // VariableKind kind = getVariableKind(varToBeDefined);
+        // int idx = getVariableIndex(varToBeDefined);
+        // VirtualSegment seg = kindToVirtualSegment(kind);
+        // vmWriter.writePop(seg, idx);
 
         writeToOutputFile("</letStatement>\n"); // closing tag
     }
@@ -389,6 +409,7 @@ public class CompilationEngine {
         writeToOutputFile("<whileStatement>\n"); // opening tag
 
         if (currentToken.equals("while")) {
+            vmWriter.writeLabel("WHILE_EXP" + whileCount);
 
             // while keyword
             writeCurrentToken();
@@ -403,6 +424,11 @@ public class CompilationEngine {
 
             // expression
             compileExpression();
+
+            // write if-goto
+            vmWriter.writeArithmetic("not");
+            // condition failed (or meet the negated condition), break the loop (go to the end)
+            vmWriter.writeIf("WHILE_END" + whileCount);
 
             // right paranthesis
             if (!currentToken.equals(")")) {
@@ -427,7 +453,11 @@ public class CompilationEngine {
             }
             writeCurrentToken();
             nextToken();
+            // go to the beginning of the while loop
+            vmWriter.writeGoto("WHILE_EXP" + whileCount); 
         }
+        vmWriter.writeLabel("WHILE_END" + whileCount);
+        whileCount++;
 
         writeToOutputFile("</whileStatement>\n"); // closing tag
     }
@@ -700,8 +730,6 @@ public class CompilationEngine {
                 vmWriter.writeArithmetic("neg");
             }
             currTermProcessed = true;
-        } else {
-
         }
         
         nextToken();
@@ -712,7 +740,16 @@ public class CompilationEngine {
             nextToken();
 
             // expression
+            // 1. expression value is to be pushed
             compileExpression();
+            // 2. push base value
+            pushVariableOntoStack(currTerm);
+            // 3. add up
+            vmWriter.writeArithmetic("add");
+            // 4. address result stored as pointer[1]
+            vmWriter.writePop(VirtualSegment.POINTER, 1);
+            // 5. push the value pointed by pointer[1] onto stack
+            vmWriter.writePush(VirtualSegment.THAT, 0);
 
             if (!currentToken.equals("]")) {
                 throw new RuntimeException("expect ] and found " + currentToken);
@@ -766,12 +803,13 @@ public class CompilationEngine {
                 VariableKind kind = getVariableKind(currTerm);
                 int idx = getVariableIndex(currTerm);
                 VirtualSegment seg = kindToVirtualSegment(kind);
-                if (seg == null) {
-                    System.out.printf(
-                        "null seg found\ncurr Term, kind, index, segName - %s, %s, %d, %s\n",
-                        currTerm, kind.toString(), idx, seg);
-                }
                 vmWriter.writePush(seg, idx); 
+                // if (currTerm.equals("i")) { // debug
+                //     System.out.printf(
+                //         "name, kind, idx, seg - %s, %s, %d, %s\n",
+                //         currTerm, kind.toString(), idx, seg
+                //         );
+                // }
             }
         }
 
@@ -1112,6 +1150,18 @@ public class CompilationEngine {
             vmWriter.writePush(VirtualSegment.CONSTANT, c);
             vmWriter.writeCall("String.appendChar", 2);
         }
+    }
+    private void pushVariableOntoStack(String variableName) {
+        VariableKind kind = getVariableKind(variableName);
+        int idx = getVariableIndex(variableName);
+        VirtualSegment seg = kindToVirtualSegment(kind);
+        vmWriter.writePush(seg, idx); 
+    }
+    private void popValueToVariable(String variableName) {
+        VariableKind kind = getVariableKind(variableName);
+        int idx = getVariableIndex(variableName);
+        VirtualSegment seg = kindToVirtualSegment(kind);
+        vmWriter.writePop(seg, idx);
     }
                 // VariableKind kind = currSubroutineST.kindOf(firstPart);
                 // int idx = currSubroutineST.indexOf(firstPart);
