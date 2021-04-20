@@ -54,8 +54,7 @@ public class JackAnalyzer {
         CompilationEngine engine = new CompilationEngine(
             tokenizer, 
             new File(outXML),
-            new File(outVM)
-            );
+            new File(outVM));
         // this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
         // this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
     }

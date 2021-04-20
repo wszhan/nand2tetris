@@ -42,12 +42,13 @@ public class VMWriter {
         writeToVMFile("if-goto " + label);
     }
     public void writeCall(String functionName, int nArgs) {
-        writeToVMFile("call " + className + "." + functionName + " " + nArgs);
-        // writeToVMFile("call " + functionName + " " + nArgs);
+        // writeToVMFile("call " + className + "." + functionName + " " + nArgs);
+        writeToVMFile("call " + functionName + " " + nArgs);
     }
     public void writeFunction(String functionName, int nLocals) {
-        System.out.printf("className, funcName, #ofVars - %s, %s, %d\n", className, functionName, nLocals);
-        writeToVMFile("function " + className + "." + functionName + " " + nLocals);
+        // System.out.printf("className, funcName, #ofVars - %s, %s, %d\n", className, functionName, nLocals);
+        writeToVMFile("function " + functionName + " " + nLocals);
+        // writeToVMFile("function " + className + "." + functionName + " " + nLocals);
     }
     public void writeReturn() {
         writeToVMFile("return");

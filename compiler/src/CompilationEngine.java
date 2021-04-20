@@ -2,6 +2,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.io.File;
 
 public class CompilationEngine {
@@ -277,6 +278,7 @@ public class CompilationEngine {
             throw new RuntimeException("expect identifier and found " + currTokenType);
         }
         writeCurrentToken();
+        String varToBeDefined = currentToken;
         nextToken();
 
         // array access?
@@ -312,6 +314,12 @@ public class CompilationEngine {
         }
         writeCurrentToken();
         nextToken();
+
+        // assignment
+        VariableKind kind = getVariableKind(varToBeDefined);
+        int idx = getVariableIndex(varToBeDefined);
+        VirtualSegment seg = kindToVirtualSegment(kind);
+        vmWriter.writePop(seg, idx);
 
         writeToOutputFile("</letStatement>\n"); // closing tag
     }
@@ -435,6 +443,9 @@ public class CompilationEngine {
      * Is ObjectArray[index].method/function allowed?
      */
     public void compileDo() {
+        String firstPart = null, secondPart = null, func = null;
+        boolean hasDotOperator = false;
+        boolean isMethodCall = true;
         writeToOutputFile("<doStatement>\n"); // opening tag
 
         // do keyword
@@ -446,21 +457,68 @@ public class CompilationEngine {
 
             // identifier: class name, method name, or class object name
             writeCurrentToken();
+            if (firstPart == null && secondPart == null) firstPart = currentToken;
+            else if (firstPart != null && secondPart == null) secondPart = currentToken;
+
             nextToken();
 
             // write dot operator and proceed to the identifier (method/function)
             if (currentToken.equals(".")) {
+                hasDotOperator = true;
                 writeCurrentToken();
                 nextToken();
+
+                char c = firstPart.charAt(0);
+
+                if (c >= 'A' && c <= 'Z') isMethodCall = false; // is class function call
+                hasDotOperator = true;
             }
         }
 
+        // System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
         // left paranthesis
         writeCurrentToken();
         nextToken();
 
+        // push obj if any before push other arguments
+        if (firstPart != null && secondPart != null) {
+            if (isMethodCall) {
+                // case 1: obj.method()
+                // push the obj to the stack as the 1st argument, push others as well
+                // call Class.method numberOfArguments+1
+
+                // search the obj in the subroutine and class STs
+                VariableKind kind = getVariableKind(firstPart);
+                int idx = getVariableIndex(firstPart);
+                String objClass = getVariableType(firstPart);;
+                // VariableKind kind = currSubroutineST.kindOf(firstPart);
+                // int idx = currSubroutineST.indexOf(firstPart);
+                // String objClass = currSubroutineST.typeOf(firstPart);;
+                // if (kind == VariableKind.NONE || kind == null) { // cannot find in local scope
+                //     kind = classSymbolTable.kindOf(firstPart); // search in class scope
+                //     idx = classSymbolTable.indexOf(firstPart);
+                //     objClass = currSubroutineST.typeOf(firstPart);;
+                // }
+                VirtualSegment seg = kindToVirtualSegment(kind);
+                vmWriter.writePush(seg, idx); // push obj to stack as args[0]
+
+                // func name is ObjClass.method
+                func = objClass + "." + secondPart;
+            } else {
+                // case 2: Class.function()
+                // no need to push obj, just call the func name
+                func = firstPart + "." + secondPart;
+            }
+
+        } else if (firstPart != null) {
+            // case 3: method()
+            // calling method within the class, no dot operator presented, thus 
+            // 2nd part is null
+            func = className + "." + firstPart;
+        }
+
         // expression
-        compileExpressionList();
+        int numberOfArguments = compileExpressionList();
 
         // right paranthesis
         writeCurrentToken();
@@ -470,10 +528,15 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
+        // System.out.printf("func, nArgs - %s, %d\n", func, numberOfArguments);
+        vmWriter.writeCall(func, numberOfArguments);
+        vmWriter.writePop(VirtualSegment.TEMP, 0); // discard stack top element of which the value is 0
+
         writeToOutputFile("</doStatement>\n"); // closing tag
     }
 
     public void compileReturn() {
+        boolean returnVoid = true;
         writeToOutputFile("<returnStatement>\n"); // opening tag
 
         // return keyword
@@ -482,6 +545,7 @@ public class CompilationEngine {
 
         // expression?
         if (!currentToken.equals(";")) {
+            returnVoid = false;
             compileExpression();
         }
 
@@ -489,6 +553,12 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
+        if (returnVoid) {
+            vmWriter.writePush(VirtualSegment.CONSTANT, 0); // 0 at stack top
+            // vmWriter.writePop(VirtualSegment.TEMP, 0);
+        }
+
+        vmWriter.writeReturn();
         writeToOutputFile("</returnStatement>\n"); // closing tag
     }
 
@@ -531,6 +601,7 @@ public class CompilationEngine {
                 unaryOperators.contains(currentToken) ||
                 binaryOperators.contains(currentToken)
             ) {
+                String op = currentToken;
                 // unary operator is part of the term itself
                 if (!unary) {
                     // write operator
@@ -540,10 +611,38 @@ public class CompilationEngine {
 
                 // operator always followed by expression
                 compileTerm();
+                compileOperator(op, !unary);
             }
         }
 
         writeToOutputFile("</expression>\n"); // closing tag
+    }
+    private void compileOperator(String op, boolean binary) {
+        if (op.equals("*")) {
+            vmWriter.writeCall("Math.multiply", 2);
+        } else if (op.equals("/")) {
+            vmWriter.writeCall("Math.divide", 2);
+        } else if (op.equals("+")) {
+            vmWriter.writeArithmetic("add");
+        } else if (op.equals("=")) {
+            vmWriter.writeArithmetic("eq");
+        } else if (op.equals("<")) {
+            vmWriter.writeArithmetic("lt");
+        } else if (op.equals(">")) {
+            vmWriter.writeArithmetic("gt");
+        } else if (op.equals("~")) {
+            vmWriter.writeArithmetic("not");
+        } else if (op.equals("&")) {
+            vmWriter.writeArithmetic("and");
+        } else if (op.equals("|")) {
+            vmWriter.writeArithmetic("or");
+        } else if (op.equals("-")) {
+            if (binary) {
+                vmWriter.writeArithmetic("sub");
+            } else {
+                vmWriter.writeArithmetic("neg");
+            }
+        }
     }
     public void compileTerm() {
         writeToOutputFile("<term>\n"); // opening tag
@@ -568,9 +667,11 @@ public class CompilationEngine {
         if (unaryOperators.contains(currentToken)) {
             // write operator
             writeCurrentToken();
+            String op = currentToken;
             nextToken();
 
             compileTerm();
+            compileOperator(op, false); // unary operator
 
             writeToOutputFile("</term>\n"); // closing tag
 
@@ -579,10 +680,33 @@ public class CompilationEngine {
         
         // identifier
         writeCurrentToken();
+        String currTerm = currentToken;
+        boolean currTermProcessed = false;
+        // currTerm possibility: integerConstant, stringConstant, keywordConstant, 
+        // varName(object, primitive type, etc.), arrayName (taken care of in the next if)
+        if (currTokenType == Token.INT_CONST) {
+            vmWriter.writePush(VirtualSegment.CONSTANT, Integer.parseInt(currTerm));
+            currTermProcessed = true;
+        } else if (currTokenType == Token.STRING_CONST) {
+            currTermProcessed = true;
+            compileString(currTerm);
+        } else if (currTokenType == Token.KEYWORD) {
+            if (currTerm.equals("null")) {
+                vmWriter.writePush(VirtualSegment.CONSTANT, 0);
+            } else if (currTerm.equals("false")) {
+                vmWriter.writePush(VirtualSegment.CONSTANT, 0);
+            } else if (currTerm.equals("false")) {
+                vmWriter.writePush(VirtualSegment.CONSTANT, 1);
+                vmWriter.writeArithmetic("neg");
+            }
+            currTermProcessed = true;
+        } else {
+
+        }
+        
         nextToken();
 
-        // array access
-        if (currentToken.equals("[")) {
+        if (currentToken.equals("[")) { // array access
             // write [
             writeCurrentToken();
             nextToken();
@@ -596,16 +720,29 @@ public class CompilationEngine {
                 writeCurrentToken();
                 nextToken();
             }
-        }
-        
-        // subroutine call
-        if (currentToken.equals(".")) {
+        } else if (currentToken.equals(".")) { // subroutine call
+            char c = currTerm.charAt(0);
+            boolean functionCall = c >= 'A' && c <= 'Z'; // last token is class name
+
             // write dot operator
             writeCurrentToken();
             nextToken();
 
             // subroutine identifier
             writeCurrentToken();
+            String subroutineName = currentToken;
+            if (functionCall) {
+                subroutineName = currTerm + "." + subroutineName;
+            } else { // method call
+                // push the obj, find the type, then call the method
+                VariableKind kind = getVariableKind(currTerm);
+                int idx = getVariableIndex(currTerm);
+                String objClass = getVariableType(currTerm);;
+                VirtualSegment seg = kindToVirtualSegment(kind);
+                vmWriter.writePush(seg, idx); // push obj to stack as args[0]
+                subroutineName = objClass + "." + subroutineName;
+            }
+            int numberOfArgs = 0;
             nextToken();
 
             if (!currentToken.equals("(")) {
@@ -615,11 +752,26 @@ public class CompilationEngine {
                 writeCurrentToken();
                 nextToken();
 
-                compileExpressionList();
+                numberOfArgs = compileExpressionList();
 
                 // )
                 writeCurrentToken();
                 nextToken();
+            }
+
+            // call the subroutine when we know the name and nArgs
+            vmWriter.writeCall(subroutineName, numberOfArgs);
+        } else { // just identifier
+            if (!currTermProcessed) {
+                VariableKind kind = getVariableKind(currTerm);
+                int idx = getVariableIndex(currTerm);
+                VirtualSegment seg = kindToVirtualSegment(kind);
+                if (seg == null) {
+                    System.out.printf(
+                        "null seg found\ncurr Term, kind, index, segName - %s, %s, %d, %s\n",
+                        currTerm, kind.toString(), idx, seg);
+                }
+                vmWriter.writePush(seg, idx); 
             }
         }
 
@@ -628,8 +780,12 @@ public class CompilationEngine {
 
     /**
      * Expressions separated by comma(s)
+     * 
+     * Return the number of arguments.
      */
-    public void compileExpressionList() {
+    public int compileExpressionList() {
+        int numberOfExpressions = 0;
+
         writeToOutputFile("<expressionList>\n"); // opening tag
 
         while (!currentToken.equals(")") || currentToken.equals(",")) {
@@ -641,9 +797,11 @@ public class CompilationEngine {
             }
 
             compileExpression();
+            numberOfExpressions++;
         }
 
         writeToOutputFile("</expressionList>\n"); // closing tag
+        return numberOfExpressions;
     }
 
 
@@ -651,20 +809,22 @@ public class CompilationEngine {
 
     public void compileSubroutine() {
         String functionName = null;
-        int numberOfLocalVariables;
         currSubroutineST = new SymbolTable(false); // boolean: not a class
 
         writeToOutputFile("<subroutineDec>\n"); // opening tag
 
         functionName = compileSubroutineDeclaration();
 
-        numberOfLocalVariables = compileSubroutineBody();
+        compileSubroutineBody(functionName); // write function once nLocals is known
+
+        // currSubroutineST.printST();
 
         // System.out.printf("funcName, #ofVars - %s, %d\n", functionName, numberOfLocalVariables);
-        vmWriter.writeFunction(functionName, numberOfLocalVariables);
+        // vmWriter.writeFunction(functionName, numberOfLocalVariables);
 
         writeToOutputFile("</subroutineDec>\n"); // closing tag
     }
+
 
     public String compileSubroutineDeclaration() {
         String functionName;
@@ -732,7 +892,7 @@ public class CompilationEngine {
 
         writeToOutputFile("</parameterList>\n"); // closing tag
     }
-    public int compileSubroutineBody() {
+    public int compileSubroutineBody(String functionName) {
         int nLocals = 0;
         writeToOutputFile("<subroutineBody>\n"); // opening tag
 
@@ -747,6 +907,7 @@ public class CompilationEngine {
         while (currentToken.equals("var")) {
             nLocals += compileSubroutineVariableDeclaration();
         }
+        vmWriter.writeFunction(className + "." + functionName, nLocals);
 
         // statements
         compileStatements();
@@ -894,4 +1055,71 @@ public class CompilationEngine {
             writeToOutputFile("</classVarDec>\n"); // closing tag
         }
     }
+
+    private static VirtualSegment kindToVirtualSegment(VariableKind kind) {
+        if (kind == VariableKind.STATIC) {
+            return VirtualSegment.STATIC;
+        } else if (kind == VariableKind.FIELD) {
+            return VirtualSegment.THIS;
+        } else if (kind == VariableKind.VAR) {
+            return VirtualSegment.LOCAL;
+        } else if (kind == VariableKind.ARG) {
+            return VirtualSegment.ARGUMENT;
+        }
+
+        return null;
+    }
+
+    // look into the STs, first local scope ST then class scope ST if not found
+    private VariableKind getVariableKind(String variableName) {
+        VariableKind kind = currSubroutineST.kindOf(variableName);
+
+        if (kind == VariableKind.NONE || kind == null) { // cannot find in local scope
+            kind = classSymbolTable.kindOf(variableName); // search in class scope
+        }
+        
+        return kind;
+    }
+    private int getVariableIndex(String variableName) {
+        int idx = currSubroutineST.indexOf(variableName);
+
+        if (idx == -1) {
+            idx = classSymbolTable.indexOf(variableName);
+        }
+
+        return idx;
+    }
+    private String getVariableType(String variableName) {
+        String objClass = currSubroutineST.typeOf(variableName);;
+
+        if (objClass == null) {
+            objClass = currSubroutineST.typeOf(variableName);;
+        }
+
+        return objClass;
+    }
+
+    private void compileString(String content) {
+        int len = content.length();
+
+        // instantiate String object
+        vmWriter.writePush(VirtualSegment.CONSTANT, len);
+        vmWriter.writeCall("String.new", 1);
+
+        // append characters one by one
+        for (int i = 0; i < len; i++) {
+            char c = content.charAt(i);
+            vmWriter.writePush(VirtualSegment.CONSTANT, c);
+            vmWriter.writeCall("String.appendChar", 2);
+        }
+    }
+                // VariableKind kind = currSubroutineST.kindOf(firstPart);
+                // int idx = currSubroutineST.indexOf(firstPart);
+                // String objClass = currSubroutineST.typeOf(firstPart);;
+                // if (kind == VariableKind.NONE || kind == null) { // cannot find in local scope
+                //     kind = classSymbolTable.kindOf(firstPart); // search in class scope
+                //     idx = classSymbolTable.indexOf(firstPart);
+                //     objClass = currSubroutineST.typeOf(firstPart);;
+                // }
+
 }

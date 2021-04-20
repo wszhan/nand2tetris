@@ -1,5 +1,7 @@
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 
 public class SymbolTable {
     private Map<String, Variable> st;
@@ -25,18 +27,29 @@ public class SymbolTable {
 
     /** APIs */
 
+    // debug
+    public void printST() {
+        Set<Entry<String, Variable>> entries = st.entrySet();
+        for (Entry<String, Variable> e : entries) {
+            System.out.printf("Variable name: %s\t", e.getKey());
+            Variable v = e.getValue();
+            System.out.printf("kind, type, index: %s, %s, %d\n", v.kind, v.dataType, v.index);
+        }
+    }
+
     /**
      * Define a variable in the current symbol table.
      */
     public void define(String varName, String dataType, VariableKind kind) {
         if (kind == VariableKind.NONE) return;
 
-        int varIndex = indexCount.get(kind) + 1;
+        int varIndex = indexCount.get(kind);
         Variable newVar = new Variable(kind, dataType, varIndex);
         st.put(varName, newVar);
 
         // increment the corresponding value in the ST
-        indexCount.put(kind, varIndex);
+        indexCount.put(kind, varIndex + 1);
+        // indexCount.put(kind, varIndex);
     }
 
     public VariableKind kindOf(String var) {
@@ -48,14 +61,23 @@ public class SymbolTable {
 
         return v.kind;
     }
-    public String typeOf(String var) {
-        if (var == null) return null;
-        return st.get(var).dataType;
+    public String typeOf(String varName) {
+        if (varName == null) return null;
+
+        Variable var = st.get(varName);
+
+        return var == null ? null : var.dataType;
     }
-    public int indexOf(String var) {
+    public int indexOf(String varName) {
+        if (varName == null) return -1;
+
+        Variable var = st.get(varName);
+
         if (var == null) return -1;
 
-        return st.get(var).index;
+        Integer res = var.index;
+
+        return res == null ? -1 : res;
     }
 
     public int varCount(VariableKind varKind) {
