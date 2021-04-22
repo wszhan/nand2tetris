@@ -7,6 +7,12 @@ import java.io.File;
 
 public class CompilationEngine {
 
+    /** Subroutine type */
+    private char UNDEFIEND_SUBROUTINE = 0;
+    private char CONSTRUCTOR_TYPE = 1;
+    private char METHOD_TYPE = 2;
+    private char FUNCTION_TYPE = 3;
+
     /** I/O */
     private JackTokenizer tokenizer;
     private FileWriter xmlWriter;
@@ -350,8 +356,11 @@ public class CompilationEngine {
     public void compileIf() {
         writeToOutputFile("<ifStatement>\n"); // opening tag
 
+        // System.out.printf("if #%d\n", subroutineIfCount);
         boolean ifClause = true, hasElse = false;
+        // System.out.printf("if #%d\n", subroutineIfCount);
         int localIfCount = ++subroutineIfCount;
+        // System.out.printf("\nif #%d starts...\n", localIfCount);
 
         while (
             currentToken.equals("if") && ifClause || 
@@ -363,8 +372,10 @@ public class CompilationEngine {
                 vmWriter.writeGoto("IF_END" + localIfCount);
                 hasElse = true;
             }
+            // System.out.printf("if clause? %b\n", ifClause);
 
             nextToken();
+
 
             // if is followed by an expression evaluated to a boolean value,
             // while else is followed by a code block
@@ -403,21 +414,47 @@ public class CompilationEngine {
             nextToken();
 
             // statements
+            // System.out.printf(
+            //     "BEFORE compileStatements - currently within %s #%d\n", 
+            //     ifClause ? "if" : "else", localIfCount);
+            // int debugIfCount1 = localIfCount;
             compileStatements();
+            // int debugIfCount2 = localIfCount;
+            // if (localIfCount == 0) {
+            //     System.out.printf();
+            // }
+            // System.out.printf(
+            //     "AFTER compileStatements - currently within %s #%d\n", 
+            //     ifClause ? "if" : "else", localIfCount);
 
             // right curly bracket 
+            // if (debugIfCount1 != debugIfCount2) {
+            //     System.out.printf("BEFORE vs. AFTER - %d vs. %d\n", debugIfCount1, debugIfCount2);
+            // }
             if (!currentToken.equals("}")) {
                 throw new RuntimeException("expect right curly bracket, and found " + currentToken);
             }
             writeCurrentToken();
             nextToken();
+            // it doesn't make sense to let ELSE followed by another IF in Jack
+            if (currentToken.equals("if")) {
+                break;
+            }
 
-            // if (ifClause) vmWriter.writeGoto("IF_END" + localIfCount);
             // next should be else clause if any
             ifClause = !ifClause;
         }
-        if (hasElse) vmWriter.writeLabel("IF_END" + localIfCount);
-        else vmWriter.writeLabel("IF_FALSE" + localIfCount);
+
+        if (hasElse) {
+            vmWriter.writeLabel("IF_END" + localIfCount);
+        } else {
+            vmWriter.writeLabel("IF_FALSE" + localIfCount);
+        }
+
+        // System.out.printf("if #%d ENDs...\n", localIfCount);
+        // if (localIfCount == 3) {
+        //     System.out.printf("");
+        // }
 
         writeToOutputFile("</ifStatement>\n"); // closing tag
     }
@@ -568,6 +605,10 @@ public class CompilationEngine {
         // expression
         int numberOfArguments = compileExpressionList();
 
+        // if a method is called on an object, the object itself is, though implicitly,
+        // the very first argument and should be pushed onto the stack before calling
+        if (isMethodCall) numberOfArguments++;
+
         // right paranthesis
         writeCurrentToken();
         nextToken();
@@ -577,6 +618,10 @@ public class CompilationEngine {
         nextToken();
 
         // System.out.printf("func, nArgs - %s, %d\n", func, numberOfArguments);
+
+        // isMethodCall == true && hasDotOperator == false
+        // calling Class.method in the Class scope; need to use THIS as the implicit first arguments
+        if (isMethodCall && !hasDotOperator) vmWriter.writePush(VirtualSegment.POINTER, 0);
         vmWriter.writeCall(func, numberOfArguments);
         vmWriter.writePop(VirtualSegment.TEMP, 0); // discard stack top element of which the value is 0
 
@@ -747,6 +792,15 @@ public class CompilationEngine {
             } else if (currTerm.equals("true")) {
                 vmWriter.writePush(VirtualSegment.CONSTANT, 0);
                 vmWriter.writeArithmetic("not");
+            } else if (currTerm.equals("this")) {
+                // // THIS passed as argument[0]
+                // int indexOfThis = currSubroutineST.indexOf(currTerm);
+                // if (indexOfThis != -1) {
+                //     pushVariableOntoStack(currTerm);
+                //     vmWriter.writePop(VirtualSegment.POINTER, 0); // anchor THIS
+                // } else {
+                    vmWriter.writePush(VirtualSegment.POINTER, 0);
+                // }
             }
             currTermProcessed = true;
         }
@@ -864,22 +918,30 @@ public class CompilationEngine {
 
     /** Subroutines */
 
-    public void compileSubroutine() {
+    public void compileSubroutine(int nClassVars) {
         String functionName = null;
+        // boolean isConstructor = false;
+        char subroutineType = UNDEFIEND_SUBROUTINE;
+        subroutineWhileCount = -1; // reset
+        subroutineIfCount = -1; // reset
         currSubroutineST = new SymbolTable(false); // boolean: not a class
 
         writeToOutputFile("<subroutineDec>\n"); // opening tag
 
-        functionName = compileSubroutineDeclaration();
+        // System.out.println("current token - " + currentToken);
+        if (currentToken.equals("constructor")) subroutineType = CONSTRUCTOR_TYPE;
+        else if (currentToken.equals("method")) subroutineType = METHOD_TYPE;
+        else if (currentToken.equals("function")) subroutineType = FUNCTION_TYPE;
 
-        compileSubroutineBody(functionName); // write function once nLocals is known
+        functionName = compileSubroutineDeclaration();
+        // System.out.printf("compile subroutine - %s\n", functionName);
+
+        compileSubroutineBody(functionName, subroutineType, nClassVars); // write function once nLocals is known
 
         // currSubroutineST.printST();
 
         // System.out.printf("funcName, #ofVars - %s, %d\n", functionName, numberOfLocalVariables);
         // vmWriter.writeFunction(functionName, numberOfLocalVariables);
-        subroutineWhileCount = -1; // reset
-        subroutineIfCount = -1; // reset
 
         writeToOutputFile("</subroutineDec>\n"); // closing tag
     }
@@ -951,7 +1013,7 @@ public class CompilationEngine {
 
         writeToOutputFile("</parameterList>\n"); // closing tag
     }
-    public int compileSubroutineBody(String functionName) {
+    public int compileSubroutineBody(String functionName, char subroutineType, int nClassVars) {
         int nLocals = 0;
         writeToOutputFile("<subroutineBody>\n"); // opening tag
 
@@ -967,6 +1029,20 @@ public class CompilationEngine {
             nLocals += compileSubroutineVariableDeclaration();
         }
         vmWriter.writeFunction(className + "." + functionName, nLocals);
+
+        // if a method is being defined, THIS should be anchored to arguments[0]
+        // argument[0] must have a name of "this" 
+        if (subroutineType == METHOD_TYPE) {
+            pushVariableOntoStack("this");
+            vmWriter.writePop(VirtualSegment.POINTER, 0); // anchoring
+        }
+
+        if (nClassVars > -1 && subroutineType == CONSTRUCTOR_TYPE) {
+            vmWriter.writePush(VirtualSegment.CONSTANT, nClassVars);
+            vmWriter.writeCall("Memory.alloc", 1);
+            // anchor to THIS
+            vmWriter.writePop(VirtualSegment.POINTER, 0);
+        }
 
         // statements
         compileStatements();
@@ -1043,18 +1119,20 @@ public class CompilationEngine {
 
         // class variable declarations or subroutine declaration
         nextToken();
-        // int n = 0;
+        int nClassVars = -1; // -1 as a flag indicating no class variables
         while (!currentToken.equals("}")) {
             if (currTokenType == Token.KEYWORD) {
                 if (
                     currentToken.equals("field") ||
                     currentToken.equals("static")) {
-                    compileClassVariableDeclaration();
+                    nClassVars = compileClassVariableDeclaration();
+                    // vmWriter.writePush(VirtualSegment.CONSTANT, nClassVars);
+                    // vmWriter.writeCall("Memory.alloc", 1);
                 } else if (
                     currentToken.equals("method") || 
                     currentToken.equals("constructor") || 
                     currentToken.equals("function")) {
-                    compileSubroutine();
+                    compileSubroutine(nClassVars);
                 }
             }
         }
@@ -1069,7 +1147,9 @@ public class CompilationEngine {
     /**
      * Each var line is an independent declaration.
      */
-    public void compileClassVariableDeclaration() {
+    public int compileClassVariableDeclaration() {
+        int nClassVars = 0;
+
         while (
             currentToken.equals("field") ||
             currentToken.equals("static")) {
@@ -1093,7 +1173,7 @@ public class CompilationEngine {
 
             // during a variable declaration
             while (!currentToken.equals(";")) {
-
+                nClassVars++;
                 // identifier
                 writeCurrentToken();
                 varName = currentToken;
@@ -1113,6 +1193,8 @@ public class CompilationEngine {
 
             writeToOutputFile("</classVarDec>\n"); // closing tag
         }
+
+        return nClassVars;
     }
 
     private static VirtualSegment kindToVirtualSegment(VariableKind kind) {
