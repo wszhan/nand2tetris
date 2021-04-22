@@ -602,6 +602,11 @@ public class CompilationEngine {
             func = className + "." + firstPart;
         }
 
+        // isMethodCall == true && hasDotOperator == false
+        // calling Class.method in the Class scope; need to use THIS as the implicit first arguments
+        // must be pushed BEFORE pushing explicitly listed parameters
+        if (isMethodCall && !hasDotOperator) vmWriter.writePush(VirtualSegment.POINTER, 0);
+
         // expression
         int numberOfArguments = compileExpressionList();
 
@@ -619,9 +624,6 @@ public class CompilationEngine {
 
         // System.out.printf("func, nArgs - %s, %d\n", func, numberOfArguments);
 
-        // isMethodCall == true && hasDotOperator == false
-        // calling Class.method in the Class scope; need to use THIS as the implicit first arguments
-        if (isMethodCall && !hasDotOperator) vmWriter.writePush(VirtualSegment.POINTER, 0);
         vmWriter.writeCall(func, numberOfArguments);
         vmWriter.writePop(VirtualSegment.TEMP, 0); // discard stack top element of which the value is 0
 
