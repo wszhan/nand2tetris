@@ -2,7 +2,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.io.File;
 
 public class CompilationEngine {
@@ -29,18 +28,6 @@ public class CompilationEngine {
     private Set<String> unaryOperators, binaryOperators, keywordConstants;
     private int subroutineWhileCount = -1, subroutineIfCount = -1;
 
-    /** Compiler XXX methods */
-    public CompilationEngine(
-        String inputJackFilePath, 
-        String outputXMLFilePath, 
-        String outputVmFilePath) {
-        this(
-            new File(inputJackFilePath), new File(outputXMLFilePath), 
-            new File(outputVmFilePath));
-    }
-
-    public CompilationEngine(File inputJackFile, File outputXMLFile, File outputVMFile) {
-    }
     public CompilationEngine(JackTokenizer jackTokenizer, File outputXMLFile, File outputVMFile) {
         if (jackTokenizer == null || outputXMLFile == null) {
             throw new IllegalArgumentException("null input to constructor.");
@@ -58,15 +45,12 @@ public class CompilationEngine {
             e.printStackTrace();
         }
 
-        // String fileName = outputVMFile.getName();
-        // int idx = fileName.indexOf(".");
-        // String className = fileName.substring(0, idx);
-        // this.className = className;
-
         startCompiling();
     }
 
-    /** Init */
+
+    /** Initialization */
+
     private void initInstanceVariables() {
         initStatementTypes();
         initDataTypes();
@@ -152,6 +136,7 @@ public class CompilationEngine {
         }
     }
 
+
     /**
      * Close input and output files.
      */
@@ -165,8 +150,11 @@ public class CompilationEngine {
         tokenizer.endTokenization();
     }
 
+
+    /**
+     * Safely read the next token.
+     */
     private void nextToken() {
-        // System.out.printf("token - %s\n", currentToken);
         if (nextToken != null) {
             currentToken = nextToken;
             currTokenType = tokenizer.tokenType();
@@ -185,6 +173,7 @@ public class CompilationEngine {
         currTokenType = null;
         nextToken = null;
     }
+
 
     /**
      * Due to the JackTokenizer API, different token type returns values
@@ -207,6 +196,7 @@ public class CompilationEngine {
 
         return res;
     }
+
 
     private void writeCurrentToken() {
         String tag = currTokenType.toString().toLowerCase();
@@ -341,11 +331,6 @@ public class CompilationEngine {
         } else {
             popValueToVariable(varToBeDefined);
         }
-        // assignment
-        // VariableKind kind = getVariableKind(varToBeDefined);
-        // int idx = getVariableIndex(varToBeDefined);
-        // VirtualSegment seg = kindToVirtualSegment(kind);
-        // vmWriter.writePop(seg, idx);
 
         writeToOutputFile("</letStatement>\n"); // closing tag
     }
@@ -356,11 +341,8 @@ public class CompilationEngine {
     public void compileIf() {
         writeToOutputFile("<ifStatement>\n"); // opening tag
 
-        // System.out.printf("if #%d\n", subroutineIfCount);
         boolean ifClause = true, hasElse = false;
-        // System.out.printf("if #%d\n", subroutineIfCount);
         int localIfCount = ++subroutineIfCount;
-        // System.out.printf("\nif #%d starts...\n", localIfCount);
 
         while (
             currentToken.equals("if") && ifClause || 
@@ -372,7 +354,6 @@ public class CompilationEngine {
                 vmWriter.writeGoto("IF_END" + localIfCount);
                 hasElse = true;
             }
-            // System.out.printf("if clause? %b\n", ifClause);
 
             nextToken();
 
@@ -414,23 +395,9 @@ public class CompilationEngine {
             nextToken();
 
             // statements
-            // System.out.printf(
-            //     "BEFORE compileStatements - currently within %s #%d\n", 
-            //     ifClause ? "if" : "else", localIfCount);
-            // int debugIfCount1 = localIfCount;
             compileStatements();
-            // int debugIfCount2 = localIfCount;
-            // if (localIfCount == 0) {
-            //     System.out.printf();
-            // }
-            // System.out.printf(
-            //     "AFTER compileStatements - currently within %s #%d\n", 
-            //     ifClause ? "if" : "else", localIfCount);
 
             // right curly bracket 
-            // if (debugIfCount1 != debugIfCount2) {
-            //     System.out.printf("BEFORE vs. AFTER - %d vs. %d\n", debugIfCount1, debugIfCount2);
-            // }
             if (!currentToken.equals("}")) {
                 throw new RuntimeException("expect right curly bracket, and found " + currentToken);
             }
@@ -450,11 +417,6 @@ public class CompilationEngine {
         } else {
             vmWriter.writeLabel("IF_FALSE" + localIfCount);
         }
-
-        // System.out.printf("if #%d ENDs...\n", localIfCount);
-        // if (localIfCount == 3) {
-        //     System.out.printf("");
-        // }
 
         writeToOutputFile("</ifStatement>\n"); // closing tag
     }
@@ -536,10 +498,6 @@ public class CompilationEngine {
         // do keyword
         writeCurrentToken();
         nextToken();
-        // System.out.printf("1st token after do keyword - %s\n", currentToken);
-        // if (currentToken.contains("setDestination")) {
-        //     System.out.printf("");
-        // }
 
         // Class or method before left parenthesis
         while (!currentToken.equals("(")) {
@@ -547,21 +505,8 @@ public class CompilationEngine {
             // identifier: class name, method name, or class object name
             writeCurrentToken();
 
-        // if (firstPart != null && firstPart.equals("ball")) {
-        //         System.out.printf(
-        //             "1st, 2nd, current - %s, %s, %s\n", 
-        //             firstPart, secondPart, currentToken);
-        // }
-
             if (firstPart == null && secondPart == null) firstPart = currentToken;
             else if (firstPart != null && secondPart == null) secondPart = currentToken;
-        // if (currentToken.contains("ball")) {
-        //         System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
-        // }
-
-            // if (currentToken.equals("setDestination")) {
-            //     System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
-            // }
 
             nextToken();
 
@@ -578,7 +523,6 @@ public class CompilationEngine {
             }
         }
 
-        // System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
         // left paranthesis
         writeCurrentToken();
         nextToken();
@@ -591,27 +535,9 @@ public class CompilationEngine {
                 // call Class.method numberOfArguments+1
 
                 // search the obj in the subroutine and class STs
-
-                // if (firstPart.equals("ball") && secondPart.equals("setDestination")) {
-                // System.out.printf("============== debug ===============\n");
-                // System.out.printf("-> CLASS ST\n");
-                // classSymbolTable.printST();
-                // System.out.printf("-> SUBROUTINE ST\n");
-                // currSubroutineST.printST();
-                // System.out.printf("============== debug ===============\n");
-                // }
-
                 VariableKind kind = getVariableKind(firstPart);
                 int idx = getVariableIndex(firstPart);
                 String objClass = getVariableType(firstPart);;
-                // VariableKind kind = currSubroutineST.kindOf(firstPart);
-                // int idx = currSubroutineST.indexOf(firstPart);
-                // String objClass = currSubroutineST.typeOf(firstPart);;
-                // if (kind == VariableKind.NONE || kind == null) { // cannot find in local scope
-                //     kind = classSymbolTable.kindOf(firstPart); // search in class scope
-                //     idx = classSymbolTable.indexOf(firstPart);
-                //     objClass = currSubroutineST.typeOf(firstPart);;
-                // }
                 VirtualSegment seg = kindToVirtualSegment(kind);
                 vmWriter.writePush(seg, idx); // push obj to stack as args[0]
 
@@ -650,8 +576,6 @@ public class CompilationEngine {
         writeCurrentToken();
         nextToken();
 
-        // System.out.printf("func, nArgs - %s, %d\n", func, numberOfArguments);
-
         vmWriter.writeCall(func, numberOfArguments);
         vmWriter.writePop(VirtualSegment.TEMP, 0); // discard stack top element of which the value is 0
 
@@ -678,7 +602,6 @@ public class CompilationEngine {
 
         if (returnVoid) {
             vmWriter.writePush(VirtualSegment.CONSTANT, 0); // 0 at stack top
-            // vmWriter.writePop(VirtualSegment.TEMP, 0);
         }
 
         vmWriter.writeReturn();
@@ -741,6 +664,8 @@ public class CompilationEngine {
 
         writeToOutputFile("</expression>\n"); // closing tag
     }
+
+
     private void compileOperator(String op, boolean binary) {
         if (op.equals("*")) {
             vmWriter.writeCall("Math.multiply", 2);
@@ -791,11 +716,9 @@ public class CompilationEngine {
         if (unaryOperators.contains(currentToken)) {
             // write operator
             writeCurrentToken();
-            String op = currentToken;
             nextToken();
 
             compileTerm();
-            // compileOperator(op, false); // unary operator?
 
             writeToOutputFile("</term>\n"); // closing tag
 
@@ -823,14 +746,7 @@ public class CompilationEngine {
                 vmWriter.writePush(VirtualSegment.CONSTANT, 0);
                 vmWriter.writeArithmetic("not");
             } else if (currTerm.equals("this")) {
-                // // THIS passed as argument[0]
-                // int indexOfThis = currSubroutineST.indexOf(currTerm);
-                // if (indexOfThis != -1) {
-                //     pushVariableOntoStack(currTerm);
-                //     vmWriter.writePop(VirtualSegment.POINTER, 0); // anchor THIS
-                // } else {
-                    vmWriter.writePush(VirtualSegment.POINTER, 0);
-                // }
+                vmWriter.writePush(VirtualSegment.POINTER, 0);
             }
             currTermProcessed = true;
         }
@@ -908,21 +824,15 @@ public class CompilationEngine {
                 int idx = getVariableIndex(currTerm);
                 VirtualSegment seg = kindToVirtualSegment(kind);
                 vmWriter.writePush(seg, idx); 
-                // if (currTerm.equals("i")) { // debug
-                //     System.out.printf(
-                //         "name, kind, idx, seg - %s, %s, %d, %s\n",
-                //         currTerm, kind.toString(), idx, seg
-                //         );
-                // }
             }
         }
 
         writeToOutputFile("</term>\n"); // closing tag
     }
 
+
     /**
      * Expressions separated by comma(s)
-     * 
      * Return the number of arguments.
      */
     public int compileExpressionList() {
@@ -943,6 +853,7 @@ public class CompilationEngine {
         }
 
         writeToOutputFile("</expressionList>\n"); // closing tag
+
         return numberOfExpressions;
     }
 
@@ -951,28 +862,22 @@ public class CompilationEngine {
 
     public void compileSubroutine(int nClassVars) {
         String functionName = null;
-        // boolean isConstructor = false;
         char subroutineType = UNDEFIEND_SUBROUTINE;
+
         subroutineWhileCount = -1; // reset
         subroutineIfCount = -1; // reset
+
         currSubroutineST = new SymbolTable(false); // boolean: not a class
 
         writeToOutputFile("<subroutineDec>\n"); // opening tag
 
-        // System.out.println("current token - " + currentToken);
         if (currentToken.equals("constructor")) subroutineType = CONSTRUCTOR_TYPE;
         else if (currentToken.equals("method")) subroutineType = METHOD_TYPE;
         else if (currentToken.equals("function")) subroutineType = FUNCTION_TYPE;
 
         functionName = compileSubroutineDeclaration();
-        // System.out.printf("compile subroutine - %s\n", functionName);
 
         compileSubroutineBody(functionName, subroutineType, nClassVars); // write function once nLocals is known
-
-        // currSubroutineST.printST();
-
-        // System.out.printf("funcName, #ofVars - %s, %d\n", functionName, numberOfLocalVariables);
-        // vmWriter.writeFunction(functionName, numberOfLocalVariables);
 
         writeToOutputFile("</subroutineDec>\n"); // closing tag
     }
@@ -980,13 +885,12 @@ public class CompilationEngine {
 
     public String compileSubroutineDeclaration() {
         String functionName;
+
         // keyword: function/method
         writeCurrentToken();
         if (currentToken.equals("method")) {
-            // args[0] is the class instance itself, referenced by "this" keyword
+            // THIS is args[0] in the scope of all methods (as compared to functions)
             currSubroutineST.define("this", className, VariableKind.ARG);
-        // } else if (currentToken.equals("function")) {
-            // args[0] is not "this" keyword in the case of function declaration
         }
 
         // keyword: return type
@@ -1008,12 +912,13 @@ public class CompilationEngine {
         compileParameterList();
 
         // right paranthesis
-        // nextToken();
         writeCurrentToken();
         nextToken();
 
         return functionName;
     }
+
+
     public void compileParameterList() {
         writeToOutputFile("<parameterList>\n"); // opening tag
 
@@ -1044,6 +949,8 @@ public class CompilationEngine {
 
         writeToOutputFile("</parameterList>\n"); // closing tag
     }
+
+
     public int compileSubroutineBody(String functionName, char subroutineType, int nClassVars) {
         int nLocals = 0;
         writeToOutputFile("<subroutineBody>\n"); // opening tag
@@ -1086,6 +993,7 @@ public class CompilationEngine {
         return nLocals;
     }
 
+
     /**
      * Compile one line of declaration only.
      */
@@ -1127,6 +1035,7 @@ public class CompilationEngine {
         return currLineNumberOfVars;
     }
 
+
     /** Classes */
     public void compileClass() {
         writeToOutputFile("<class>\n"); // class opening tag
@@ -1157,8 +1066,6 @@ public class CompilationEngine {
                     currentToken.equals("field") ||
                     currentToken.equals("static")) {
                     nClassVars = compileClassVariableDeclaration();
-                    // vmWriter.writePush(VirtualSegment.CONSTANT, nClassVars);
-                    // vmWriter.writeCall("Memory.alloc", 1);
                 } else if (
                     currentToken.equals("method") || 
                     currentToken.equals("constructor") || 
@@ -1174,6 +1081,7 @@ public class CompilationEngine {
         
         writeToOutputFile("</class>"); // class closing tag
     }
+
 
     /**
      * Each var line is an independent declaration.
@@ -1228,6 +1136,10 @@ public class CompilationEngine {
         return nClassVars;
     }
 
+
+    /**
+     * Get the corresponding virtual segment of a certain kind.
+     */
     private static VirtualSegment kindToVirtualSegment(VariableKind kind) {
         if (kind == VariableKind.STATIC) {
             return VirtualSegment.STATIC;
@@ -1242,7 +1154,10 @@ public class CompilationEngine {
         return null;
     }
 
-    // look into the STs, first local scope ST then class scope ST if not found
+
+    /**
+     * Look into the STs, first local scope ST then class scope ST if not found.
+     */
     private VariableKind getVariableKind(String variableName) {
         VariableKind kind = currSubroutineST.kindOf(variableName);
 
@@ -1271,6 +1186,11 @@ public class CompilationEngine {
         return objClass;
     }
 
+
+    /**
+     * Syntax sugar.
+     * Initialize space for the string and append characters one-by-one.
+     */
     private void compileString(String content) {
         int len = content.length();
 
@@ -1285,25 +1205,27 @@ public class CompilationEngine {
             vmWriter.writeCall("String.appendChar", 2);
         }
     }
+
+
+    /**
+     * 
+     * Push the value of a known variable onto the stack.
+     */
     private void pushVariableOntoStack(String variableName) {
         VariableKind kind = getVariableKind(variableName);
         int idx = getVariableIndex(variableName);
         VirtualSegment seg = kindToVirtualSegment(kind);
         vmWriter.writePush(seg, idx); 
     }
+
+
+    /**
+     * Pop the stack top value to a known variable.
+     */
     private void popValueToVariable(String variableName) {
         VariableKind kind = getVariableKind(variableName);
         int idx = getVariableIndex(variableName);
         VirtualSegment seg = kindToVirtualSegment(kind);
         vmWriter.writePop(seg, idx);
     }
-                // VariableKind kind = currSubroutineST.kindOf(firstPart);
-                // int idx = currSubroutineST.indexOf(firstPart);
-                // String objClass = currSubroutineST.typeOf(firstPart);;
-                // if (kind == VariableKind.NONE || kind == null) { // cannot find in local scope
-                //     kind = classSymbolTable.kindOf(firstPart); // search in class scope
-                //     idx = classSymbolTable.indexOf(firstPart);
-                //     objClass = currSubroutineST.typeOf(firstPart);;
-                // }
-
 }

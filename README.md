@@ -2,6 +2,12 @@
 
 A repo consisting of projects from the course [*From Nand to Tetris: Building a Modern Computer From First Principles*](https://www.nand2tetris.org/).
 
+## Course Overview
+
+If you are taking the course on Coursera where deadlines apply, it should be expected that the second part of the course requires much more commitment than the first one. The lectures are longer, concepts more mind-bending, and projects more time-consuming, exactly like an intermediate level undergraduate course.
+
+Besides, although it is said programming background is not necessary, the course could be a headache with no prior knowledge of programming or computer science. However, picking up and cramming for relevant topics during the course could be possible too.
+
 ## Project 2
 
 Two improved implementation for ADD16 compared to the default one in the course, as well as relevant resources:
@@ -44,6 +50,10 @@ It is extremely important to differentiante D register and A register as well as
 
 Leave a note here to save someone's life probably: if you are uploading week 8's project file and the grader keeps failing your assignment, try rename the file to "project7.zip". It worked for me.
 
-## Project 10: Compiler part 1
+## Project 10 & 11: Compiler
 
 This assignment is not difficult; the syntax of Jack language is already pretty simplified for educational purposes by the professors. However, it can be very time-consuming, because the compiler needs to cope with all syntactically legitimate arrangement. Following the steps proposed by the professor is a good way to go.
+
+Since the test cases are guaranteed to be error-free and the Jack language is designed simple for educational purposes, the most important task here is to take into consideration all possible **valid** cases.
+
+Although the VM code generated does not have to be identical to the test cases, it will be much easier to base the test on the provided files, since comparison could simply do the job.

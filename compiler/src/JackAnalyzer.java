@@ -8,8 +8,6 @@ public class JackAnalyzer {
     public static final String EXTENSION_DELIMITER = ".";
 
     /** Instance Variables */
-    // private JackTokenizer tokenizer;
-    // private CompilationEngine engine;
     private String pathDelimiter; // OS dependent
 
     public JackAnalyzer(String inputFileName) {
@@ -32,9 +30,6 @@ public class JackAnalyzer {
     }
 
     /** Initialization */
-    public void initializeTokenizer() {
-        // this.tokenizer = new JackTokenizer();
-    }
 
     public void compileDirectory(File dir) {
         for (File file : dir.listFiles()) {
@@ -54,9 +49,8 @@ public class JackAnalyzer {
         CompilationEngine engine = new CompilationEngine(
             tokenizer, 
             new File(outXML),
-            new File(outVM));
-        // this.tokenizer = new JackTokenizer(jackFile, new File(outputTokenizedFileName));
-        // this.engine = new CompilationEngine(tokenizer, new File(outputFileName));
+            new File(outVM)
+            );
     }
 
 
@@ -85,13 +79,16 @@ public class JackAnalyzer {
     private void getOSInfo() {
         String osName = System.getProperty("os.name");
 
-        if (osName.contains("indows")) {
+        if (osName.contains("indows")) { // windows
             this.pathDelimiter = "\\";
         } else { // linux
             this.pathDelimiter = "/";
         }
     }
 
+    /**
+     * Project 10 Main method.
+     */
     public static void main(String[] args) {
         if (args != null && args.length == 1) {
             String path = args[0];

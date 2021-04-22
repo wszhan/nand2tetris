@@ -8,7 +8,6 @@ import java.io.IOException;
 public class VMWriter {
 
     private FileWriter vmWriter;
-    private String className = null;
     
     public VMWriter(File outputVMFile) {
         if (outputVMFile == null) {
@@ -16,7 +15,6 @@ public class VMWriter {
         }
         
         initWriter(outputVMFile);
-        initClassName(outputVMFile);
     }
 
     /** APIs */
@@ -69,13 +67,6 @@ public class VMWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void initClassName(File outputVMFile) {
-        String fileName = outputVMFile.getName();
-        int idx = fileName.indexOf(".");
-        String className = fileName.substring(0, idx);
-        this.className = className;
     }
 
     /** Helpers */

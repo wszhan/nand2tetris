@@ -1,15 +1,15 @@
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
 
 public class SymbolTable {
     private Map<String, Variable> st;
     private Map<VariableKind, Integer> indexCount;
 
+    /**
+     * The ST is within either the scope of a class or that of a subroutine.
+     */
     public SymbolTable(boolean isClass) {
         this.st = new HashMap<>();
-        // this.indexCount = new HashMap<>();
         initIndexCountST(isClass);
     }
 
@@ -27,16 +27,6 @@ public class SymbolTable {
 
     /** APIs */
 
-    // debug
-    public void printST() {
-        Set<Entry<String, Variable>> entries = st.entrySet();
-        for (Entry<String, Variable> e : entries) {
-            System.out.printf("Variable name: %s\t", e.getKey());
-            Variable v = e.getValue();
-            System.out.printf("kind, type, index: %s, %s, %d\n", v.kind, v.dataType, v.index);
-        }
-    }
-
     /**
      * Define a variable in the current symbol table.
      */
@@ -49,9 +39,13 @@ public class SymbolTable {
 
         // increment the corresponding value in the ST
         indexCount.put(kind, varIndex + 1);
-        // indexCount.put(kind, varIndex);
     }
 
+
+    /**
+     * Kind defines the scope.
+     * Return NONE type if the kind is unknown.
+     */
     public VariableKind kindOf(String var) {
         if (var == null) return null;
 
@@ -61,6 +55,12 @@ public class SymbolTable {
 
         return v.kind;
     }
+
+
+    /**
+     * Type defines the dataType.
+     * Return null if the type is unknown.
+     */
     public String typeOf(String varName) {
         if (varName == null) return null;
 
@@ -68,6 +68,12 @@ public class SymbolTable {
 
         return var == null ? null : var.dataType;
     }
+
+
+    /**
+     * Returns the index of the variable in its corresponding
+     * virtual memory segment.
+     */
     public int indexOf(String varName) {
         if (varName == null) return -1;
 
@@ -80,11 +86,14 @@ public class SymbolTable {
         return res == null ? -1 : res;
     }
 
-    public int varCount(VariableKind varKind) {
-        if (varKind == VariableKind.NONE) return 0;
+    /**
+     * Did not use.
+     */
+    // public int varCount(VariableKind varKind) {
+    //     if (varKind == VariableKind.NONE) return 0;
 
-        return indexCount.get(varKind);
-    }
+    //     return indexCount.get(varKind);
+    // }
 
     /** Initialization */
 
@@ -99,7 +108,6 @@ public class SymbolTable {
             indexCount.put(VariableKind.VAR, 0);
         }
     }
-
     
     public static void main(String[] args) {
         SymbolTable testClassST = new SymbolTable(true);
