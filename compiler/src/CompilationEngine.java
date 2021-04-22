@@ -536,14 +536,32 @@ public class CompilationEngine {
         // do keyword
         writeCurrentToken();
         nextToken();
+        // System.out.printf("1st token after do keyword - %s\n", currentToken);
+        // if (currentToken.contains("setDestination")) {
+        //     System.out.printf("");
+        // }
 
         // Class or method before left parenthesis
         while (!currentToken.equals("(")) {
 
             // identifier: class name, method name, or class object name
             writeCurrentToken();
+
+        // if (firstPart != null && firstPart.equals("ball")) {
+        //         System.out.printf(
+        //             "1st, 2nd, current - %s, %s, %s\n", 
+        //             firstPart, secondPart, currentToken);
+        // }
+
             if (firstPart == null && secondPart == null) firstPart = currentToken;
             else if (firstPart != null && secondPart == null) secondPart = currentToken;
+        // if (currentToken.contains("ball")) {
+        //         System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
+        // }
+
+            // if (currentToken.equals("setDestination")) {
+            //     System.out.printf("1st, 2nd - %s, %s\n", firstPart, secondPart);
+            // }
 
             nextToken();
 
@@ -573,6 +591,16 @@ public class CompilationEngine {
                 // call Class.method numberOfArguments+1
 
                 // search the obj in the subroutine and class STs
+
+                // if (firstPart.equals("ball") && secondPart.equals("setDestination")) {
+                // System.out.printf("============== debug ===============\n");
+                // System.out.printf("-> CLASS ST\n");
+                // classSymbolTable.printST();
+                // System.out.printf("-> SUBROUTINE ST\n");
+                // currSubroutineST.printST();
+                // System.out.printf("============== debug ===============\n");
+                // }
+
                 VariableKind kind = getVariableKind(firstPart);
                 int idx = getVariableIndex(firstPart);
                 String objClass = getVariableType(firstPart);;
@@ -835,6 +863,7 @@ public class CompilationEngine {
         } else if (currentToken.equals(".")) { // subroutine call
             char c = currTerm.charAt(0);
             boolean functionCall = c >= 'A' && c <= 'Z'; // last token is class name
+            int numberOfArgs = 0;
 
             // write dot operator
             writeCurrentToken();
@@ -853,8 +882,8 @@ public class CompilationEngine {
                 VirtualSegment seg = kindToVirtualSegment(kind);
                 vmWriter.writePush(seg, idx); // push obj to stack as args[0]
                 subroutineName = objClass + "." + subroutineName;
+                numberOfArgs++;
             }
-            int numberOfArgs = 0;
             nextToken();
 
             if (!currentToken.equals("(")) {
@@ -864,7 +893,7 @@ public class CompilationEngine {
                 writeCurrentToken();
                 nextToken();
 
-                numberOfArgs = compileExpressionList();
+                numberOfArgs += compileExpressionList();
 
                 // )
                 writeCurrentToken();
@@ -1175,7 +1204,7 @@ public class CompilationEngine {
 
             // during a variable declaration
             while (!currentToken.equals(";")) {
-                nClassVars++;
+                if (kind == VariableKind.FIELD) nClassVars++;
                 // identifier
                 writeCurrentToken();
                 varName = currentToken;
@@ -1236,7 +1265,7 @@ public class CompilationEngine {
         String objClass = currSubroutineST.typeOf(variableName);;
 
         if (objClass == null) {
-            objClass = currSubroutineST.typeOf(variableName);;
+            objClass = classSymbolTable.typeOf(variableName);;
         }
 
         return objClass;
