@@ -359,7 +359,11 @@ public class CompilationEngine {
 
             // if/else keyword
             writeCurrentToken();
-            // if (currentToken.equals("else")) hasElse = true;
+            if (currentToken.equals("else")) {
+                vmWriter.writeGoto("IF_END" + localIfCount);
+                hasElse = true;
+            }
+
             nextToken();
 
             // if is followed by an expression evaluated to a boolean value,
@@ -408,11 +412,12 @@ public class CompilationEngine {
             writeCurrentToken();
             nextToken();
 
-            if (ifClause) vmWriter.writeGoto("IF_END" + localIfCount);
+            // if (ifClause) vmWriter.writeGoto("IF_END" + localIfCount);
             // next should be else clause if any
             ifClause = !ifClause;
         }
-        vmWriter.writeLabel("IF_END" + localIfCount);
+        if (hasElse) vmWriter.writeLabel("IF_END" + localIfCount);
+        else vmWriter.writeLabel("IF_FALSE" + localIfCount);
 
         writeToOutputFile("</ifStatement>\n"); // closing tag
     }
