@@ -21,7 +21,7 @@ public class CompilationEngine {
     private Set<String> statementKeyword;
     private Set<String> dataTypes;
     private Set<String> unaryOperators, binaryOperators, keywordConstants;
-    private int whileCount = 0, ifCount = 0;
+    private int subroutineWhileCount = -1, subroutineIfCount = -1;
 
     /** Compiler XXX methods */
     public CompilationEngine(
@@ -350,7 +350,8 @@ public class CompilationEngine {
     public void compileIf() {
         writeToOutputFile("<ifStatement>\n"); // opening tag
 
-        boolean ifClause = true;
+        boolean ifClause = true, hasElse = false;
+        int localIfCount = ++subroutineIfCount;
 
         while (
             currentToken.equals("if") && ifClause || 
@@ -358,6 +359,7 @@ public class CompilationEngine {
 
             // if/else keyword
             writeCurrentToken();
+            // if (currentToken.equals("else")) hasElse = true;
             nextToken();
 
             // if is followed by an expression evaluated to a boolean value,
@@ -373,6 +375,9 @@ public class CompilationEngine {
                 // expression
                 compileExpression(); // no need to next
 
+                vmWriter.writeIf("IF_TRUE" + localIfCount);
+                vmWriter.writeGoto("IF_FALSE" + localIfCount);
+
                 // right paranthesis
                 if (!currentToken.equals(")")) {
                     throw new RuntimeException("expect right parenthesis - " + currentToken);
@@ -381,6 +386,11 @@ public class CompilationEngine {
                 nextToken();
             }
 
+            if (ifClause) {
+                vmWriter.writeLabel("IF_TRUE" + localIfCount);
+            } else {
+                vmWriter.writeLabel("IF_FALSE" + localIfCount);
+            }
             // left curly bracket 
             if (!currentToken.equals("{")) {
                 throw new RuntimeException("expect left curly bracket - " + currentToken);
@@ -398,9 +408,11 @@ public class CompilationEngine {
             writeCurrentToken();
             nextToken();
 
+            if (ifClause) vmWriter.writeGoto("IF_END" + localIfCount);
             // next should be else clause if any
             ifClause = !ifClause;
         }
+        vmWriter.writeLabel("IF_END" + localIfCount);
 
         writeToOutputFile("</ifStatement>\n"); // closing tag
     }
@@ -408,8 +420,10 @@ public class CompilationEngine {
     public void compileWhile() {
         writeToOutputFile("<whileStatement>\n"); // opening tag
 
+        int localWhileCount = ++subroutineWhileCount;
+
         if (currentToken.equals("while")) {
-            vmWriter.writeLabel("WHILE_EXP" + whileCount);
+            vmWriter.writeLabel("WHILE_EXP" + localWhileCount);
 
             // while keyword
             writeCurrentToken();
@@ -428,7 +442,7 @@ public class CompilationEngine {
             // write if-goto
             vmWriter.writeArithmetic("not");
             // condition failed (or meet the negated condition), break the loop (go to the end)
-            vmWriter.writeIf("WHILE_END" + whileCount);
+            vmWriter.writeIf("WHILE_END" + localWhileCount);
 
             // right paranthesis
             if (!currentToken.equals(")")) {
@@ -454,10 +468,9 @@ public class CompilationEngine {
             writeCurrentToken();
             nextToken();
             // go to the beginning of the while loop
-            vmWriter.writeGoto("WHILE_EXP" + whileCount); 
+            vmWriter.writeGoto("WHILE_EXP" + localWhileCount); 
         }
-        vmWriter.writeLabel("WHILE_END" + whileCount);
-        whileCount++;
+        vmWriter.writeLabel("WHILE_END" + localWhileCount);
 
         writeToOutputFile("</whileStatement>\n"); // closing tag
     }
@@ -641,6 +654,7 @@ public class CompilationEngine {
 
                 // operator always followed by expression
                 compileTerm();
+                // writeArithmetic happens after arguments are pushed
                 compileOperator(op, !unary);
             }
         }
@@ -701,7 +715,7 @@ public class CompilationEngine {
             nextToken();
 
             compileTerm();
-            compileOperator(op, false); // unary operator
+            // compileOperator(op, false); // unary operator?
 
             writeToOutputFile("</term>\n"); // closing tag
 
@@ -725,9 +739,9 @@ public class CompilationEngine {
                 vmWriter.writePush(VirtualSegment.CONSTANT, 0);
             } else if (currTerm.equals("false")) {
                 vmWriter.writePush(VirtualSegment.CONSTANT, 0);
-            } else if (currTerm.equals("false")) {
-                vmWriter.writePush(VirtualSegment.CONSTANT, 1);
-                vmWriter.writeArithmetic("neg");
+            } else if (currTerm.equals("true")) {
+                vmWriter.writePush(VirtualSegment.CONSTANT, 0);
+                vmWriter.writeArithmetic("not");
             }
             currTermProcessed = true;
         }
@@ -859,6 +873,8 @@ public class CompilationEngine {
 
         // System.out.printf("funcName, #ofVars - %s, %d\n", functionName, numberOfLocalVariables);
         // vmWriter.writeFunction(functionName, numberOfLocalVariables);
+        subroutineWhileCount = -1; // reset
+        subroutineIfCount = -1; // reset
 
         writeToOutputFile("</subroutineDec>\n"); // closing tag
     }
