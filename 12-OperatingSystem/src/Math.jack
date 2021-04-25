@@ -47,6 +47,9 @@ class Math {
      *  When a Jack compiler detects the multiplication operator '*' in the 
      *  program's code, it handles it by invoking this method. In other words,
      *  the Jack expressions x*y and multiply(x,y) return the same value.
+
+     *  While using multiply in code, in the case that either the multiplicand or multiplier is small,
+     *  try to use addition instead of multiplication for optimization.
      */
     function int multiply(int x, int y) {
         var int product, shiftedX, j; // local 0, 1, 2
@@ -104,7 +107,33 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
-        return 0;
+        var int q, res;
+        // need to take care of the signs of x and y
+        var boolean negx, negy;
+
+        let negx = x < 0;
+        let negy = y < 0;
+        // operate division on positive values
+        let x = Math.abs(x);
+        let y = Math.abs(y);
+
+        if (y > x) {
+            return 0;
+        }
+
+        let q = Math.divide(x, (y + y));
+        
+        if ((x - (2 * q * y)) < y) {
+            let res = q + q;
+        } else {
+            let res = q + q + 1;
+        }
+
+        if (negx = negy) {
+            return res;
+        } else {
+            return -res;
+        }
     }
 
     /** Returns the integer part of the square root of x. */
