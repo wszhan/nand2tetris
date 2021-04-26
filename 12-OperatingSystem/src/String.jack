@@ -34,8 +34,10 @@ class String {
     method void dispose() {
         // dispose all object variable first
         do s.dispose();
+
         // finally, destroy THIS
         do Memory.deAlloc(this);
+        
         return;
     }
 
@@ -46,21 +48,18 @@ class String {
 
     /** Returns the character at the j-th location of this string. */
     method char charAt(int j) {
-        return s[j];
-        // if (j < length) {
-        //     return s[j];
-        // }
+        // take care of out-of-bound j pointer
+        if (j < length) {
+            return s[j];
+        }
 
-        // // out of bound, return whiltespace character
-        // return 0;
+        // out of bound, return null character
+        return 0;
     }
 
     /** Sets the character at the j-th location of this string to c. */
     method void setCharAt(int j, char c) {
         let s[j] = c;
-        
-        // increment current string length
-        // let length = length + 1;
         
         return;
     }
@@ -136,38 +135,34 @@ class String {
             let val = -val; // operate on positive number
         }
 
-        // let c = val - ((val / 10) * 10) + 48; // 48 as the ASCII value of '0'
-
-        // if (~(val < 10)) {
-        //     do setInt(val / 10);
-        // }
-
         do setIntegerResursively(val);
-        // if (val < 10) {
-        //     do appendChar(c);
-        // } else {
-        //     do setInt(val / 10);
-        //     do appendChar(c);
-        // }
-
-        // fill the rest space, if any, with null character
-        // while (length < capacity) {
-        //     do appendChar(0);
-        // }
 
         return;
     }
+
+    
+    /** Must use a helper recursive function to avoid clear the original string recursively and 
+        lead to infinite loop. */
     method void setIntegerResursively(int val) {
         var char c;
         
+        // LSD
         let c = String.digitToChar(val - ((val / 10) * 10));
 
-        if (val < 10) {
-            do appendChar(c);
-        } else {
+        // recursively process the val excluding LSD while it is a multi-digit number
+        if (~(val < 10)) { 
             do setIntegerResursively(val / 10);
-            do appendChar(c);
         }
+        
+        // append LSD
+        do appendChar(c);
+
+        // if (val < 10) { // val < 10, val is single-digit number
+        //     do appendChar(c);
+        // } else { // val >= 10, val is a multi-digit number
+        //     do setIntegerResursively(val / 10);
+        //     do appendChar(c);
+        // }
 
         return;
     }
