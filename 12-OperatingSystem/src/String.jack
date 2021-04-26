@@ -14,18 +14,27 @@ class String {
     // the address of the field s and the object is the same
     field Array s;
     // the actual number of characters in the string array, as compared to max length (or capacity)
-    field int length;
+    field int length, capacity;
 
     /** constructs a new empty string with a maximum length of maxLength
      *  and initial length of 0. */
     constructor String new(int maxLength) {
+        // support 0 capacity string
+        if (maxLength = 0) {
+            let maxLength = 1;
+        }
+        
         let s = Array.new(maxLength);        
+        let capacity = maxLength;
         let length = 0;
         return this;
     }
 
     /** Disposes this string. */
     method void dispose() {
+        // dispose all object variable first
+        do s.dispose();
+        // finally, destroy THIS
         do Memory.deAlloc(this);
         return;
     }
@@ -38,25 +47,46 @@ class String {
     /** Returns the character at the j-th location of this string. */
     method char charAt(int j) {
         return s[j];
+        // if (j < length) {
+        //     return s[j];
+        // }
+
+        // // out of bound, return whiltespace character
+        // return 0;
     }
 
     /** Sets the character at the j-th location of this string to c. */
     method void setCharAt(int j, char c) {
         let s[j] = c;
+        
+        // increment current string length
+        // let length = length + 1;
+        
         return;
     }
 
     /** Appends c to this string's end and returns this string. */
     method String appendChar(char c) {
-        let s[length] = c;
-        let length = length + 1;
-        return s;
+        if (length < capacity) {
+            let s[length] = c;
+            let length = length + 1;
+        }
+
+        // Although THIS has the same address as Array s, this method should
+        // return a String type value
+        return this;
     }
 
     /** Erases the last character from this string. */
     method void eraseLastChar() {
-        let length = length - 1;
-        let s[length] = 0;
+        if (length > 0) {
+            // decrement first for we are using 0-index
+            let length = length - 1;
+            
+            // set it to be null character
+            let s[length] = 0;
+        }
+
         return;
     }
 
@@ -64,43 +94,81 @@ class String {
      *  until a non-digit character is detected. */
     method int intValue() {
         var int i, val;
+        var boolean negativeSign;
         
+        let negativeSign = false;
         let i = 0;
         let val = 0;
 
+        // is the first character a negative sign?
+        if (s[i] = 45) {
+            let negativeSign = true;
+            // increment pointer
+            let i = i + 1;
+        }
+
         // i is within the bound and s[i] is a digit character
         while ((i < length) & (s[i] > 47) & (s[i] < 58)) {
-            let val = val * 10 + s[i];
+            let val = val * 10 + (s[i] - 48); // 48 as '0'
             let i = i + 1;
         }
         
-        return val;
+        if (i > 0) {
+            if (negativeSign) {
+                return -val;
+            } else {
+                return val;
+            }
+        }
+
+        // there is no value or only a sign
+        return 0;
     }
+
 
     /** Sets this string to hold a representation of the given value. */
     method void setInt(int val) {
-        var int c;
-
-        while (length > 0) {
-            do eraseLastChar();
-
-            // isntance variable length is decremented within 
-            // the eraseLastChar() method, so no need to do it here
+        let length = 0; // reset string
+        
+        // negative number
+        if (val < 0) {
+            do appendChar(45); // append '-' sign
+            let val = -val; // operate on positive number
         }
 
-        let c = val - ((val / 10) * 10) + 48; // 48 as the ASCII value of '0'
+        // let c = val - ((val / 10) * 10) + 48; // 48 as the ASCII value of '0'
 
         // if (~(val < 10)) {
         //     do setInt(val / 10);
         // }
 
+        do setIntegerResursively(val);
+        // if (val < 10) {
+        //     do appendChar(c);
+        // } else {
+        //     do setInt(val / 10);
+        //     do appendChar(c);
+        // }
+
+        // fill the rest space, if any, with null character
+        // while (length < capacity) {
+        //     do appendChar(0);
+        // }
+
+        return;
+    }
+    method void setIntegerResursively(int val) {
+        var char c;
+        
+        let c = String.digitToChar(val - ((val / 10) * 10));
+
         if (val < 10) {
             do appendChar(c);
         } else {
-            do setInt(val / 10);
+            do setIntegerResursively(val / 10);
             do appendChar(c);
         }
-        
+
         return;
     }
 
@@ -117,5 +185,18 @@ class String {
     /** Returns the double quote (") character. */
     function char doubleQuote() {
         return 34;
+    }
+
+    /** Helper: is a character ASCII digit? */
+    function boolean isDigit(char c) {
+        return ((c > 47) & (c < 58));
+    }
+    /** Helper: make a digit ASCII */
+    function char digitToChar(int digit) {
+        return digit + 48; // 48 as '0'
+    }
+    /** Helper: make a ASCII character a digit */
+    function char charToDigit(char c) {
+        return c - 48;
     }
 }
