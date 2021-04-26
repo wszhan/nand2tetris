@@ -128,12 +128,16 @@ class Math {
             let y = Math.abs(y);
         }
 
-        // beware of overflow in the case of 2*y exceeds max int
-        if ((x < y) | ((y + y) < 0)) {
+        if (x < y) {
             return 0;
         }
 
-        let q = Math.divide(x, (y + y));
+        // beware of overflow in the case of 2*y exceeds max int
+        if ((y + y) < 0) {
+            let q = 0;
+        } else {
+            let q = Math.divide(x, (y + y));
+        }
         
         if ((x - (2 * q * y)) < y) {
             let res = q + q;
