@@ -55,6 +55,11 @@ class Math {
         var int product, shiftedX, j; // local 0, 1, 2
         var boolean bitOpen; // local 3
         
+        // edge case: simplify computation
+        if ((x = 0) | (y = 0)) {
+            return 0;
+        }
+        
         let product = 0;
         let shiftedX = x;
         let j = 0;
@@ -113,11 +118,18 @@ class Math {
 
         let negx = x < 0;
         let negy = y < 0;
+        
         // operate division on positive values
-        let x = Math.abs(x);
-        let y = Math.abs(y);
+        // only take absolute value when original value is negative
+        if (negx) {
+            let x = Math.abs(x);
+        }
+        if (negy) {
+            let y = Math.abs(y);
+        }
 
-        if (y > x) {
+        // beware of overflow in the case of 2*y exceeds max int
+        if ((x < y) | ((y + y) < 0)) {
             return 0;
         }
 
