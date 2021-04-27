@@ -219,7 +219,20 @@ class Output {
     function void printChar(char c) {
         var Array charMap; // singular, for this character only
         var int currRow, currRowAddr, combinedMap, oddCol, prevMap;
+        var boolean backspace;
 
+        let backspace = false;
+
+        if (c = 129) {
+            do Output.reverseCursor();
+            let backspace = true;
+            let c = 32; // whitespace
+        }
+        if (c = 128) {
+            do Output.println();
+            return;
+        }
+        
         let charMap = Output.getMap(c);
         let currRow = 0; // local row
 
@@ -265,7 +278,9 @@ class Output {
             let currRow = currRow + 1;
         }
 
-        do Output.advanceCursor();
+        if (~(backspace)) {
+            do Output.advanceCursor();
+        }
 
         return;
     }
@@ -273,12 +288,31 @@ class Output {
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
+        var int strLen, i;
+
+        let strLen = s.length();
+        let i = 0;
+
+        while (i < strLen) {
+            do Output.printChar(s.charAt(i));
+
+            let i = i + 1;
+        }
+        
         return;
     }
 
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
+        var String s;
+
+        let s = String.new(6); // five digit number plus a negative sign
+        
+        do s.setInt(i);
+
+        do Output.printString(s);
+
         return;
     }
 
@@ -288,19 +322,28 @@ class Output {
      */
     function void println() {
         // just move on to the next line
-        let col = 0;
-
         if (row = 22) {
             let row = 0; // start all over again
         } else {
             let row = row + 1;
         }
-        
+
+        // align left
+        let col = 0;
+
         return;
     }
 
     /** Moves the cursor one column back. */
     function void backSpace() {
+        // move the cursor back
+        do Output.reverseCursor();
+
+        // erase last character
+        do Output.printChar(32);
+        
+        do Output.reverseCursor();
+
         return;
     }
 
@@ -323,7 +366,32 @@ class Output {
             // keep row unchanged
         }
 
-        do Output.moveCursor(row, col);
+        // do Output.moveCursor(row, col);
+        
+        return;
+    }
+
+    function void reverseCursor() {
+        // previous row if row > 0
+        if (col = 0) {
+            if (row > 0) {
+                let row = row - 1;
+                let col = 63;
+            }
+
+            // do nothing is row == 0 and col == 0
+        } else {
+            let col = col - 1;
+        }
+
+        // do Output.moveCursor(row, col);
+
+        return;
+    }
+
+    function void displayCursor() {
+        do Output.printChar(32);
+        do Output.reverseCursor();
         return;
     }
 }
