@@ -196,4 +196,8 @@ class Math {
             return b;
         }
     }
+
+    function Array twoToTheMap() {
+        return twoToThe;
+    }
 }
