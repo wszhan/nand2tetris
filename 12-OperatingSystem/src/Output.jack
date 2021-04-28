@@ -389,9 +389,9 @@ class Output {
         return;
     }
 
-    function void displayCursor() {
-        do Output.printChar(32);
-        do Output.reverseCursor();
-        return;
-    }
+    // function void displayCursor() {
+    //     do Output.printChar(0);
+    //     do Output.printChar(32);
+    //     return;
+    // }
 }

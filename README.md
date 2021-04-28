@@ -57,3 +57,28 @@ This assignment is not difficult; the syntax of Jack language is already pretty 
 Since the test cases are guaranteed to be error-free and the Jack language is designed simple for educational purposes, the most important task here is to take into consideration all possible **valid** cases.
 
 Although the VM code generated does not have to be identical to the test cases, it will be much easier to base the test on the provided files, since comparison could simply do the job.
+
+## Project 12: Operating System
+
+It just never occurs to us that how complicated and ingenious these very fundamental services are until we set out to implement them from scratch. It is a real bless that we as high-level programmers take for granted all these services.
+
+List of headaches during the development:
+
+Multiply: Use multiplication to do shifting within multiplication, which can very easily lead to stack overflow caused by recursion
+
+Output:
+i. A word in memory is a 16-bit binary number, with the least significant digit on the rightmost (logically, or that is how we see in the textbook). On the screen, for each word the represents a line of 16 pixels, the least significant bit value comes first at the leftmost pixel.
+ii. Combied with the above one, this is another mind-bending feature: each character is set to be 8-bit wide; therefore, each word in memory actually contains parts of two separate unrelated neighboring character. Thus, the parts of two neighboring words might be stored in the same word in memory or neghboring/different words. This requires we select the correct 8-bit portion before setting the value. Mask helps here.
+
+Screen:
+i. There are at least 3 different scenarios while drawing a horizontal line. They all needs to be taken care of separately to get graphics work.
+
+## Some Notes
+
+Undiscussed topics:
+- how are radix complement numbers translated into machine language?
+- why 16-bit number is legit for Hack computers which has only 15 bits to represent numerical values in A-instructions?
+
+## Summary
+
+This is really a great course, offering students a educational but pragmatic experience of building a modern general-purpose computer that can accomplish many tasks.
