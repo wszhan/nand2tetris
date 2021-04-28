@@ -169,24 +169,6 @@ class Screen {
                 }
                 let yInBound = ~(ay < dy);
             }
-            
-            // if (diff < 0) {
-            //     if (dy > 0) {
-            //         let ax = ax + 1;
-            //         let diff = diff + dy;
-            //     } else {
-            //         let ay = ay - 1;
-            //         let diff = diff + dx;
-            //     }
-            // } else { // diff >= 0; depending on whether diffy/slope is positive or not
-            //     if (dy > 0) {
-            //         let ay = ay + 1;
-            //         let diff = diff - dx;
-            //     } else {
-            //         let ax = ax + 1;
-            //         let diff = diff + dy;
-            //     }
-            // }
         }
         
         return;
@@ -214,6 +196,14 @@ class Screen {
 
         let startWordAddress = y * 32 + (x1 / 16);
         let endWordAddress = y * 32 + (x2 / 16);
+
+        // if x1 and x2 belongs to the same word
+        if (startWordAddress = endWordAddress) {
+            do Screen.drawHorizontalWithinWord(x1, x2, y, startWordAddress);
+            return;
+        }
+            
+        // otherwise, this is a long line
         let j = startWordAddress + 1;
 
         // first word
@@ -240,25 +230,50 @@ class Screen {
         }
 
         // last word
-        let edgeWord = 0; // reuse local variable
-        let xmod = x2 & 15;
+        if (startWordAddress < endWordAddress) {
+            let edgeWord = 0; // reuse local variable
+            let xmod = x2 & 15;
 
-        // made all bits less significant than x1 in this word drawn
-        let i = 0;
-        while (~(i > xmod)) {
-            let edgeWord = edgeWord | twoToThe[i];
-            let i = i + 1;
-        }
-        
-        if (color = BLACK_COLOR) {
-            let screen[endWordAddress] = screen[endWordAddress] | edgeWord;
-        } else {
-            let screen[endWordAddress] = screen[endWordAddress] & ~edgeWord;
+            // made all bits less significant than x1 in this word drawn
+            let i = 0;
+            while (~(i > xmod)) {
+                let edgeWord = edgeWord | twoToThe[i];
+                let i = i + 1;
+            }
+            
+            if (color = BLACK_COLOR) {
+                let screen[endWordAddress] = screen[endWordAddress] | edgeWord;
+            } else {
+                let screen[endWordAddress] = screen[endWordAddress] & ~edgeWord;
+            }
         }
 
         return ;
     }
     
+    function void drawHorizontalWithinWord(int x1, int x2, int y, int wordAddr) {
+        var int i, x1mod, x2mod, lineBitMap;
+
+        let x1mod = x1 & 15; 
+        let x2mod = x2 & 15; 
+        let i = x1mod;
+        let lineBitMap = 0;
+
+        while (~(i > x2mod)) { // i <= x2
+            let lineBitMap = twoToThe[i] | lineBitMap;
+
+            let i = i + 1;
+        }
+
+        // write to the address, without overwriting previous bitmap
+        if (color = BLACK_COLOR) {
+            let screen[wordAddr] = screen[wordAddr] | lineBitMap;
+        } else {
+            let screen[wordAddr] = screen[wordAddr] & ~lineBitMap;
+        }
+
+        return;
+    }
     
     /**
      * Set the same bit in words vertically aligned, or with address difference of 32.
@@ -296,24 +311,56 @@ class Screen {
      * Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. 
      * 
-     * Draw two vertical lines and two horizontal lines. 
+     * Draw (y2 - y1 + 2) horizontal lines. 
      * 
      */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
-        // horizontal #1
-        do Screen.drawHorizontal(x1, x2, y1);
-        // horizontal #2
-        do Screen.drawHorizontal(x1, x2, y2);
-        // vertical #1
-        do Screen.drawVertical(y1, y2, x1);
-        // vertical #2
-        do Screen.drawVertical(y1, y2, x2);
+        var int yi;
+
+        let yi = y1;
+
+        while (~(yi > y2)) {
+            do Screen.drawHorizontal(x1, x2, yi);
+            let yi = yi + 1;
+        }
         
         return;
     }
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+        var int halfChord, dy, rSquared;
+
+        let dy = 0;
+        let rSquared = r * r;
+
+        // step 1: while dy == 0        
+        // save the unnecessary trouble of computing Math.sqrt(r * r) while dy == 0
+        do Screen.drawHorizontal(x - r, x + r, y);
+
+        // step 2
+        // incrementing occurs at the block beginning, thus termianting condition 
+        // should be dy < r rather than dy <= r
+        while (dy < r) {
+            // 0 < dy <= r
+            // (y - r) <= (y - dy) <= y
+            // y <= (y + dy) <= (y + r)
+            let dy = dy + 1; 
+
+            let halfChord = Math.sqrt(rSquared - (dy * dy));
+
+            // upper half
+            do Screen.drawHorizontal(x - halfChord, x + halfChord, y - dy);
+            
+            // lower half
+            do Screen.drawHorizontal(x - halfChord, x + halfChord, y + dy);
+        }
+
+        // step 3: while dy == r
+        // let halfChord = Math.sqrt(rSquared - (dy * dy));
+        // do Screen.drawHorizontal(x - halfChord, x + halfChord, y - dy);
+        // do Screen.drawHorizontal(x - halfChord, x + halfChord, y + dy);
+        
         return;
     }
 }
